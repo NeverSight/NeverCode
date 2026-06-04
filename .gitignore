@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+nevercode
+nevercode-stripped
+test_unit
+test_integration
+*.log
+
+# Object files
+*.o
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# test
+local_docs/
+
+# Harness progress log (working tree artifact)
+nevercode-progress.md
+
+# Running the binary inside this repo leaves local harness files — do not commit
+/.agents/
+/init.sh
+
+# IDE / editor project files
+.cursor/
+
