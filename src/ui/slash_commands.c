@@ -74,7 +74,7 @@ slash_result_t handle_slash_command(const char *input, conversation_t *conv, con
             }
         } else {
             char *listing = NULL;
-            int n = history_list(&listing);
+            int n = nc_session_history_list(&listing);
             if (n > 0) {
                 term_color(T_BOLD, "Recent sessions:\n");
                 printf("%s", listing);
@@ -838,7 +838,7 @@ slash_result_t handle_slash_command(const char *input, conversation_t *conv, con
             if (ent->d_name[0] == '.')
                 continue;
             char mpath[NC_PATH_MAX];
-            snprintf(mpath, sizeof(mpath), "%s/%s/metadata.json", sess_dir, ent->d_name);
+            snprintf(mpath, sizeof(mpath), "%.2038s/%.2038s/metadata.json", sess_dir, ent->d_name);
 
             size_t flen = 0;
             char *json_data = strbuf_read_file_max(mpath, &flen, NC_READ_CAP_JSON_SMALL);

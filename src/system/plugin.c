@@ -8,9 +8,51 @@
 
 #include "nevercode.h"
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 static plugin_registry_t g_plugins;
 static bool g_plugins_initialized = false;
+
+/* Refusal predicate for plugin shared objects: only regular files owned by no
+ * looser-than-owner group may be dlopen'd. Refuses symlinks, directories,
+ * fifos/sockets/devices, and group/world-writable files. Returns 0 if the
+ * path is loadable, -1 otherwise. The containing directory must not be
+ * world-writable either (unless sticky, like /tmp). */
+int plugin_file_loadable(const char *path) {
+    if (!path || !path[0])
+        return -1;
+
+    struct stat st;
+    if (lstat(path, &st) != 0)
+        return -1;
+    if (!S_ISREG(st.st_mode))
+        return -1;
+    if (st.st_mode & (S_IWGRP | S_IWOTH))
+        return -1;
+
+    const char *slash = strrchr(path, '/');
+    if (slash) {
+        char dir[NC_PATH_MAX];
+        size_t dl = (size_t)(slash - path);
+        if (dl >= sizeof(dir))
+            return -1;
+        memcpy(dir, path, dl);
+        dir[dl] = '\0';
+        struct stat dst;
+        if (stat(dir, &dst) == 0 && (dst.st_mode & S_IWOTH) && !(dst.st_mode & S_ISVTX))
+            return -1;
+    }
+    return 0;
+}
+
+/* Project-local plugin directories (i.e. .nevercode/plugins inside a repo) are
+ * only loaded when explicitly opted in via NEVERCODE_PROJECT_PLUGINS=1.
+ * Loading code from a freshly cloned repository otherwise executes unreviewed
+ * native code at startup. */
+bool plugin_project_plugins_allowed(void) {
+    const char *v = getenv("NEVERCODE_PROJECT_PLUGINS");
+    return v && (strcmp(v, "1") == 0 || strcmp(v, "true") == 0 || strcmp(v, "on") == 0);
+}
 
 void plugin_registry_init(plugin_registry_t *r) {
     memset(r, 0, sizeof(*r));
@@ -169,6 +211,14 @@ int plugin_load_so(plugin_registry_t *r, const char *path) {
 }
 
 int plugin_load_dir(plugin_registry_t *r, const char *dir) {
+    if (!dir || !dir[0])
+        return 0;
+
+    /* Refuse to discover plugins from a world-writable, non-sticky directory */
+    struct stat dst;
+    if (stat(dir, &dst) == 0 && (dst.st_mode & S_IWOTH) && !(dst.st_mode & S_ISVTX))
+        return 0;
+
     DIR *d = opendir(dir);
     if (!d)
         return 0;
@@ -187,6 +237,11 @@ int plugin_load_dir(plugin_registry_t *r, const char *dir) {
 
         char path[NC_PATH_MAX];
         snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+        if (plugin_file_loadable(path) != 0) {
+            fprintf(stderr, "[plugin] refusing to load %s: not a regular file or writable by others\n",
+                    path);
+            continue;
+        }
         if (plugin_load_so(r, path) == 0)
             loaded++;
     }
@@ -300,10 +355,16 @@ int plugin_discover_defaults(plugin_registry_t *r, const char *project_root) {
     }
 
     if (project_root && project_root[0]) {
-        snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_PRIMARY);
-        n += plugin_load_dir(r, p);
-        snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_COMPAT);
-        n += plugin_load_dir(r, p);
+        if (!plugin_project_plugins_allowed()) {
+            fprintf(stderr,
+                    "[plugin] skipping project-local plugins in %s (set NEVERCODE_PROJECT_PLUGINS=1 to enable)\n",
+                    project_root);
+        } else {
+            snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_PRIMARY);
+            n += plugin_load_dir(r, p);
+            snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_COMPAT);
+            n += plugin_load_dir(r, p);
+        }
     }
     return n;
 }

@@ -3,7 +3,7 @@
 #include "harness.h"
 
 static int t_init_empty(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ASSERT_INT_EQ(ledger_event_count(&el), 0);
     ASSERT_NULL(ledger_event_at(&el, 0));
@@ -12,7 +12,7 @@ static int t_init_empty(void) {
 }
 
 static int t_append_and_count(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     int seq1 = ledger_append(&el, "start", "node-a", "began work");
     int seq2 = ledger_append(&el, "done", "node-a", "finished");
@@ -29,7 +29,7 @@ static int t_append_and_count(void) {
 }
 
 static int t_append_result(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     int seq = ledger_append_result(&el, "completed", "n1", "ok", "output text", 0);
     ASSERT_GT(seq, 0);
@@ -45,7 +45,7 @@ static int t_append_result(void) {
 }
 
 static int t_events_since(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_append(&el, "a", NULL, NULL);
     ledger_append(&el, "b", NULL, NULL);
@@ -61,7 +61,7 @@ static int t_events_since(void) {
 }
 
 static int t_format_tail(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_append(&el, "alpha", "n1", "detail");
     ledger_append(&el, "beta", "n2", "info");
@@ -77,7 +77,7 @@ static int t_format_tail(void) {
 }
 
 static int t_run_token(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_set_run_token(&el, "run-42");
     ledger_append(&el, "ev", NULL, NULL);
@@ -91,7 +91,7 @@ static int t_run_token(void) {
 }
 
 static int t_out_of_bounds(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ASSERT_NULL(ledger_event_at(&el, -1));
     ASSERT_NULL(ledger_event_at(&el, 0));

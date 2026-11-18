@@ -10,7 +10,10 @@ static char g_tmpdir[512];
 
 static void make_tmpdir(void) {
     snprintf(g_tmpdir, sizeof(g_tmpdir), "/tmp/nc_fidx_test_XXXXXX");
-    mkdtemp(g_tmpdir);
+    if (mkdtemp(g_tmpdir) == NULL) {
+        fprintf(stderr, "mkdtemp failed\n");
+        exit(1);
+    }
 }
 
 static void write_file(const char *rel, const char *content) {

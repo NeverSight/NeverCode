@@ -1,6 +1,11 @@
 #include "nevercode.h"
 #include <fnmatch.h>
 
+/* FNM_CASEFOLD is a GNU extension; fall back to case-sensitive match elsewhere */
+#ifndef FNM_CASEFOLD
+#define FNM_CASEFOLD 0
+#endif
+
 /*
  * Network Policy System — domain-level allow/deny rules for network access.
  *

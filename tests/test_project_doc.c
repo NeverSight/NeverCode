@@ -76,7 +76,7 @@ static int test_prompt_project_doc_loading(void) {
     ASSERT(strstr(loaded, "AGENTS.md") != NULL);
     ASSERT(strstr(loaded, "Build: make test") != NULL);
 
-    chdir(saved_cwd);
+    ASSERT_INT_EQ(chdir(saved_cwd), 0);
     project_root_reset();
     unlink(agents_path);
     rmdir(tmpdir);
@@ -106,7 +106,7 @@ static int test_prompt_compat_md_loading(void) {
     ASSERT(strstr(loaded, "CLAUDE.md") != NULL);
     ASSERT(strstr(loaded, "Custom rules here") != NULL);
 
-    chdir(saved_cwd);
+    ASSERT_INT_EQ(chdir(saved_cwd), 0);
     project_root_reset();
     unlink(claude_path);
     rmdir(tmpdir);
@@ -174,7 +174,7 @@ static int test_same_dir_agents_and_extra_merged(void) {
     ASSERT(strstr(loaded, "from-agents-family") != NULL);
     ASSERT(strstr(loaded, "from-extra-family") != NULL);
 
-    chdir(saved_cwd);
+    ASSERT_INT_EQ(chdir(saved_cwd), 0);
     project_root_reset();
     unlink(p1);
     unlink(p2);

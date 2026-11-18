@@ -6,8 +6,8 @@ static int test_perm_init(void) {
     perm_ctx_t p;
     perm_init(&p);
     ASSERT_INT_EQ(p.num_rules, 0);
-    ASSERT_INT_EQ(p.trust_all, 1);
-    ASSERT_INT_EQ(p.approval_preset, APPROVAL_FULL);
+    ASSERT_INT_EQ(p.trust_all, 0);
+    ASSERT_INT_EQ(p.approval_preset, APPROVAL_DEFAULT);
     perm_free(&p);
     return 0;
 }
@@ -15,6 +15,7 @@ static int test_perm_init(void) {
 static int test_perm_trust_all(void) {
     perm_ctx_t p;
     perm_init(&p);
+    p.trust_all = true; /* explicit opt-in, e.g. --dangerously-skip-permissions */
     ASSERT_INT_EQ(perm_check(&p, "Bash", NULL), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "Write", "/etc/passwd"), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "Edit", "/tmp/test"), PERM_ALLOW);
@@ -29,18 +30,46 @@ static int test_perm_safe_tools(void) {
     ASSERT_INT_EQ(perm_check(&p, "Glob", NULL), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "Grep", NULL), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "TodoWrite", NULL), PERM_ALLOW);
-    ASSERT_INT_EQ(perm_check(&p, "WebFetch", NULL), PERM_ALLOW);
-    ASSERT_INT_EQ(perm_check(&p, "WebSearch", NULL), PERM_ALLOW);
+    ASSERT_INT_EQ(perm_check(&p, "WebFetch", NULL), PERM_ASK);
+    ASSERT_INT_EQ(perm_check(&p, "WebSearch", NULL), PERM_ASK);
     perm_free(&p);
     return 0;
 }
 
-static int test_perm_full_access_default(void) {
+static int test_perm_standard_workspace(void) {
     perm_ctx_t p;
     perm_init(&p);
     ASSERT_INT_EQ(perm_check(&p, "Bash", NULL), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "Write", "/tmp/test"), PERM_ALLOW);
     ASSERT_INT_EQ(perm_check(&p, "Edit", "/tmp/test"), PERM_ALLOW);
+    /* Relative path inside the workspace (tests run with repo as CWD) */
+    ASSERT_INT_EQ(perm_check(&p, "Write", "tests/test_permission.c"), PERM_ALLOW);
+    ASSERT_INT_EQ(perm_check(&p, "Edit", "src/../tests/test_permission.c"), PERM_ALLOW);
+    /* Outside the workspace: approval required */
+    ASSERT_INT_EQ(perm_check(&p, "Write", "/etc/passwd"), PERM_ASK);
+    ASSERT_INT_EQ(perm_check(&p, "Edit", "/etc/cron.d/x"), PERM_ASK);
+    ASSERT_INT_EQ(perm_check(&p, "Write", "/tmp/../../etc/passwd"), PERM_ASK);
+    perm_free(&p);
+    return 0;
+}
+
+static int test_perm_standard_network(void) {
+    perm_ctx_t p;
+    perm_init(&p);
+    /* Network tools require approval under "standard" even though read-only */
+    ASSERT_INT_EQ(perm_check(&p, "WebFetch", NULL), PERM_ASK);
+    ASSERT_INT_EQ(perm_check(&p, "WebSearch", NULL), PERM_ASK);
+    perm_free(&p);
+    return 0;
+}
+
+static int test_perm_full_access(void) {
+    perm_ctx_t p;
+    perm_init(&p);
+    perm_set_approval(&p, APPROVAL_FULL);
+    ASSERT_INT_EQ(p.trust_all, 1);
+    ASSERT_INT_EQ(perm_check(&p, "WebFetch", NULL), PERM_ALLOW);
+    ASSERT_INT_EQ(perm_check(&p, "Write", "/etc/passwd"), PERM_ALLOW);
     perm_free(&p);
     return 0;
 }
@@ -115,7 +144,9 @@ int test_permission_all(void) {
     RUN_TEST(test_perm_init);
     RUN_TEST(test_perm_trust_all);
     RUN_TEST(test_perm_safe_tools);
-    RUN_TEST(test_perm_full_access_default);
+    RUN_TEST(test_perm_standard_workspace);
+    RUN_TEST(test_perm_standard_network);
+    RUN_TEST(test_perm_full_access);
     RUN_TEST(test_perm_readonly_mode);
     RUN_TEST(test_perm_add_rule);
     RUN_TEST(test_perm_path_prefix);

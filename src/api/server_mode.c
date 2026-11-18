@@ -119,7 +119,9 @@ static void send_response(int client_idx, const char *resp) {
         total += (size_t)n;
     }
     const char nl = '\n';
-    (void)write(c->fd, &nl, 1);
+    if (write(c->fd, &nl, 1) < 0) {
+        /* best effort: response already delivered on the wire */
+    }
 }
 
 static void process_line(int client_idx, const char *line) {

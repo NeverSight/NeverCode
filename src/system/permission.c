@@ -1,11 +1,12 @@
 #include "permission.h"
 #include "tools.h"
 #include "terminal.h"
+#include <string.h> /* memcpy */
 
 void perm_init(perm_ctx_t *p) {
     memset(p, 0, sizeof(*p));
-    p->trust_all = true;
-    p->approval_preset = APPROVAL_FULL;
+    p->trust_all = false;
+    p->approval_preset = APPROVAL_DEFAULT;
 }
 
 void perm_free(perm_ctx_t *p) {
@@ -32,29 +33,127 @@ void perm_add_rule(perm_ctx_t *p, const char *tool, const char *path_prefix, per
     r->decision = d;
 }
 
+/* Read-only tools that are safe to allow when no tool definition is available */
+static bool _safe_readonly_fallback(const char *tool) {
+    return strcmp(tool, "Read") == 0 || strcmp(tool, "Glob") == 0 || strcmp(tool, "Grep") == 0 ||
+           strcmp(tool, "ListDir") == 0;
+}
+
+/* True if the tool performs network access (approval-required under "standard") */
+static bool _is_network_tool(const char *tool) {
+    return strcmp(tool, "WebFetch") == 0 || strcmp(tool, "WebSearch") == 0;
+}
+
+/* Normalize `path` lexically (resolves "." and ".."). Falls back to the raw
+ * path on overflow. */
+static void _normalize_lexical(const char *path, char *out, size_t outsz) {
+    static const size_t MAX_PARTS = 2048;
+    char tmp[NC_PATH_MAX * 2];
+    if (snprintf(tmp, sizeof(tmp), "%s", path) >= (int)sizeof(tmp)) {
+        nc_strlcpy(out, path, outsz);
+        return;
+    }
+    const char *parts[2048];
+    int np = 0;
+    bool absolute = path[0] == '/';
+    char *save = NULL;
+    char *tok = strtok_r(tmp, "/", &save);
+    while (tok) {
+        if (strcmp(tok, ".") == 0)
+            ; /* skip */
+        else if (strcmp(tok, "..") == 0) {
+            if (np > 0 && strcmp(parts[np - 1], "..") != 0)
+                np--;
+            else if (!absolute) {
+                if (np >= (int)MAX_PARTS) {
+                    nc_strlcpy(out, path, outsz);
+                    return;
+                }
+                parts[np++] = tok;
+            }
+        } else {
+            if (np >= (int)MAX_PARTS) {
+                nc_strlcpy(out, path, outsz);
+                return;
+            }
+            parts[np++] = tok;
+        }
+        tok = strtok_r(NULL, "/", &save);
+    }
+    size_t off = 0;
+    out[0] = '\0';
+    if (absolute && outsz > 1)
+        out[off++] = '/';
+    for (int i = 0; i < np && off < outsz - 1; i++) {
+        if (i)
+            out[off++] = '/';
+        size_t tl = strlen(parts[i]);
+        if (off + tl >= outsz)
+            break;
+        memcpy(out + off, parts[i], tl);
+        off += tl;
+    }
+    out[off] = '\0';
+}
+
+/* True if `path` resolves inside the project workspace (or a scratch area). */
+static bool _path_in_workspace(const char *path) {
+    char resolved[NC_PATH_MAX];
+    const char *root = project_root_detect(NULL);
+
+    if (!path || !path[0])
+        return true;
+
+    bool absolute = path[0] == '/';
+    if (realpath(path, resolved)) {
+        /* have fully resolved */
+    } else {
+        char norm[NC_PATH_MAX * 2];
+        char cwd[NC_PATH_MAX];
+        if (!absolute && getcwd(cwd, sizeof(cwd))) {
+            if (snprintf(norm, sizeof(norm), "%s/%s", cwd, path) < (int)sizeof(norm)) {
+                char n2[NC_PATH_MAX * 2];
+                _normalize_lexical(norm, n2, sizeof(n2));
+                if (realpath(n2, resolved))
+                    goto resolved_ok;
+                nc_strlcpy(resolved, n2, sizeof(resolved));
+                goto resolved_ok;
+            }
+        }
+        {
+            char n2[NC_PATH_MAX * 2];
+            _normalize_lexical(path, n2, sizeof(n2));
+            if (realpath(n2, resolved))
+                goto resolved_ok;
+            nc_strlcpy(resolved, n2, sizeof(resolved));
+        }
+    }
+resolved_ok:
+
+    if (root) {
+        size_t rlen = strlen(root);
+        if (strncmp(resolved, root, rlen) == 0 && (resolved[rlen] == '\0' || resolved[rlen] == '/'))
+            return true;
+    }
+    if (strncmp(resolved, "/tmp/", 5) == 0 || strncmp(resolved, "/dev/", 5) == 0 ||
+        strcmp(resolved, "/tmp") == 0 || strcmp(resolved, "/dev") == 0)
+        return true;
+    const char *tdir = getenv("TMPDIR");
+    if (tdir && tdir[0] && strncmp(resolved, tdir, strlen(tdir)) == 0)
+        return true;
+    return false;
+}
+
 perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path) {
     if (p->trust_all)
         return PERM_ALLOW;
 
-    /* Auto-allow read-only tools based on tool flags */
+    /* Auto-allow read-only tools based on tool flags (but network tools still ask) */
     const tool_def_t *td = tools_find(tool);
-    if (td && td->read_only)
+    if (td && td->read_only && !_is_network_tool(tool))
         return PERM_ALLOW;
 
-    /* In read-only approval preset, deny non-read-only tools by default */
-    if (p->approval_preset == APPROVAL_READONLY && td && !td->read_only)
-        return PERM_ASK;
-
-    /* Fallback whitelist when tools not yet registered or missing read_only */
-    if (!td) {
-        if (strcmp(tool, "Read") == 0 || strcmp(tool, "Glob") == 0 || strcmp(tool, "Grep") == 0 ||
-            strcmp(tool, "ListDir") == 0 || strcmp(tool, "WebFetch") == 0 ||
-            strcmp(tool, "WebSearch") == 0)
-            return PERM_ALLOW;
-    }
-    if (strcmp(tool, "TodoWrite") == 0)
-        return PERM_ALLOW;
-
+    /* User rules override preset defaults */
     for (int i = p->num_rules - 1; i >= 0; i--) {
         perm_rule_t *r = &p->rules[i];
         if (strcmp(r->tool_name, tool) != 0 && strcmp(r->tool_name, "*") != 0)
@@ -65,7 +164,31 @@ perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path) {
         }
         return r->decision;
     }
-    return PERM_ASK;
+
+    if (strcmp(tool, "TodoWrite") == 0)
+        return PERM_ALLOW;
+
+    /* In read-only approval preset, deny non-read-only tools by default */
+    if (p->approval_preset == APPROVAL_READONLY) {
+        if (!td && _safe_readonly_fallback(tool))
+            return PERM_ALLOW;
+        return PERM_ASK;
+    }
+
+    /* "standard" preset: workspace ops allowed silently; network access and
+     * files outside the workspace require approval */
+    if (p->approval_preset == APPROVAL_DEFAULT) {
+        if (_is_network_tool(tool))
+            return PERM_ASK;
+        if (path)
+            return _path_in_workspace(path) ? PERM_ALLOW : PERM_ASK;
+        return PERM_ALLOW;
+    }
+
+    /* full-access / unknown: permissive unless a rule denies */
+    if (!td && !_safe_readonly_fallback(tool))
+        return PERM_ASK;
+    return PERM_ALLOW;
 }
 
 int perm_prompt_user(const char *tool, const char *detail) {
@@ -92,8 +215,11 @@ void perm_set_approval(perm_ctx_t *p, approval_preset_t preset) {
     case APPROVAL_READONLY:
         p->trust_all = false;
         break;
-    case APPROVAL_FULL:
     case APPROVAL_DEFAULT:
+        /* "standard": workspace ops allowed; network/outside-workspace tools ask */
+        p->trust_all = false;
+        break;
+    case APPROVAL_FULL:
     default:
         p->trust_all = true;
         break;

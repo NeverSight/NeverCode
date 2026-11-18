@@ -13,7 +13,8 @@ typedef struct {
 
 /* Approval presets (process start: NC_DEFAULT_APPROVAL_PRESET in defaults.h). */
 typedef enum {
-    APPROVAL_DEFAULT = 0,  /* permissive; same behavior as APPROVAL_FULL */
+    APPROVAL_DEFAULT = 0,  /* standard: workspace ops allowed; network access or files
+                              outside the workspace require approval */
     APPROVAL_READONLY = 1, /* read-only tools only; prompts for mutating tools */
     APPROVAL_FULL = 2      /* permissive; no permission prompts */
 } approval_preset_t;

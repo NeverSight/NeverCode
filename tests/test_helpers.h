@@ -55,7 +55,7 @@ static inline int th_remove_tree(const char *path) {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
         char child[NC_PATH_MAX];
-        snprintf(child, sizeof(child), "%s/%s", path, ent->d_name);
+        snprintf(child, sizeof(child), "%.2045s/%.2045s", path, ent->d_name);
         if (th_remove_tree(child) != 0)
             rc = -1;
     }

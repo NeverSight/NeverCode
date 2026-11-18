@@ -69,7 +69,11 @@ static void list_dir(const char *dir, const char *rel, int depth, int max_depth,
                 list_dir(fullpath, relpath, depth + 1, max_depth, recursive, sb, count);
         } else if (S_ISLNK(st.st_mode)) {
             char target[NC_LINE_MAX] = {0};
-            readlink(fullpath, target, sizeof(target) - 1);
+            ssize_t _n = readlink(fullpath, target, sizeof(target) - 1);
+            if (_n >= 0 && (size_t)_n < sizeof(target))
+                target[_n] = '\0';
+            else
+                target[0] = '\0';
             char line[NC_PATH_MAX * 2 + NC_TAG_MAX];
             snprintf(line, sizeof(line), "%s l %s -> %s", perms, relpath, target);
             strbuf_append_str(sb, line);

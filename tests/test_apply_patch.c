@@ -275,7 +275,7 @@ static int test_marker_add_file(void) {
     char patch[2048];
     snprintf(patch, sizeof(patch),
              "*** Begin Patch\n"
-             "*** Add File: %s\n"
+             "*** Add File: %.600s\n"
              "+first line\n"
              "+second line\n"
              "+third line\n"
@@ -379,7 +379,7 @@ static int test_marker_multi_file(void) {
              "-two\n"
              "+TWO\n"
              " three\n"
-             "*** Add File: %s\n"
+             "*** Add File: %.600s\n"
              "+new file content\n"
              "*** End Patch\n",
              p1, p2);
@@ -492,16 +492,16 @@ static int test_apply_patch_restore_unified_create_delete(void) {
 
     char patch[4096];
     snprintf(patch, sizeof(patch),
-             "diff --git a/%s b/%s\n"
+             "diff --git a/%.600s b/%.600s\n"
              "deleted file mode 100644\n"
-             "--- a/%s\n"
+             "--- a/%.600s\n"
              "+++ /dev/null\n"
              "@@ -1,1 +0,0 @@\n"
              "-gone soon\n"
-             "diff --git a/%s b/%s\n"
+             "diff --git a/%.600s b/%.600s\n"
              "new file mode 100644\n"
              "--- /dev/null\n"
-             "+++ b/%s\n"
+             "+++ b/%.600s\n"
              "@@ -0,0 +1,1 @@\n"
              "+brand new\n",
              deleted_path, deleted_path, deleted_path, added_path, added_path, added_path);
@@ -561,14 +561,14 @@ static int test_apply_patch_restore_marker_move_add_delete(void) {
     char patch[4096];
     snprintf(patch, sizeof(patch),
              "*** Begin Patch\n"
-             "*** Update File: %s\n"
-             "*** Move to: %s\n"
+             "*** Update File: %.600s\n"
+             "*** Move to: %.600s\n"
              " alpha\n"
              "-beta\n"
              "+BETA\n"
              " gamma\n"
-             "*** Delete File: %s\n"
-             "*** Add File: %s\n"
+             "*** Delete File: %.600s\n"
+             "*** Add File: %.600s\n"
              "+draft line\n"
              "*** End Patch\n",
              source_path, target_path, deleted_path, added_path);

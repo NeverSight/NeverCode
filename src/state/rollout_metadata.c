@@ -158,16 +158,16 @@ long rollout_meta_duration_s(const rollout_meta_t *m) {
 }
 
 char *rollout_meta_format(const rollout_meta_t *m) {
-    size_t sz = NC_LINE_MAX;
+    size_t sz = 4096; /* session(63)+model(63)+workspace(4095)+summary(256)+labels fit */
     char *buf = malloc(sz);
     if (!buf)
         return NULL;
 
     snprintf(buf, sz,
-             "Session: %s\nModel: %s\nWorkspace: %s\n"
+             "Session: %.63s\nModel: %.63s\nWorkspace: %.3500s\n"
              "Turns: %d | Tools: %d | Compactions: %d\n"
              "Tokens: %d in / %d out | Cost: $%.4f\n"
-             "Duration: %lds\n%s%s",
+             "Duration: %lds\n%s%.250s",
              m->session_id, m->model, m->workspace, m->turn_count, m->tool_call_count,
              m->compact_count, m->input_tokens, m->output_tokens, m->cost,
              rollout_meta_duration_s(m), m->summary[0] ? "Summary: " : "",
@@ -184,11 +184,11 @@ int rollout_meta_save(const rollout_meta_t *m, const char *session_id) {
     nc_mkdir_p(dir);
 
     char sess_dir[NC_PATH_MAX];
-    snprintf(sess_dir, sizeof(sess_dir), "%s/%s", dir, session_id);
+    snprintf(sess_dir, sizeof(sess_dir), "%.2045s/%.2045s", dir, session_id);
     mkdir(sess_dir, NC_DIR_MODE_PRIVATE);
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/metadata.json", sess_dir);
+    snprintf(path, sizeof(path), "%.4079s/metadata.json", sess_dir);
 
     char *json = rollout_meta_serialize(m);
     if (!json)

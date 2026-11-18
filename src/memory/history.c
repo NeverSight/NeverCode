@@ -171,7 +171,7 @@ int history_load(conversation_t *c, const char *session_id) {
     return 0;
 }
 
-int history_list(char **out) {
+int nc_session_history_list(char **out) {
     char *dir = history_dir();
     if (!dir) {
         *out = nc_xstrdup("(no history directory)");

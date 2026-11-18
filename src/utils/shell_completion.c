@@ -192,7 +192,7 @@ int shell_completion_install(const char *shell_name) {
     mkdir(dir, NC_DIR_MODE);
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/completion.%s", dir, ext);
+    snprintf(path, sizeof(path), "%.2039s/completion.%.2039s", dir, ext);
 
     int rc = nc_write_file_str(path, script);
     free(script);

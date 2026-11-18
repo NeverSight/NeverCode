@@ -47,8 +47,11 @@ int hardened_exec(const char *cmd, const hardened_limits_t *lm, char **out,
 #ifdef __linux__
         prctl(PR_SET_PDEATHSIG, SIGTERM);
 #endif
-        if (l->nice_value)
-            nice(l->nice_value);
+        if (l->nice_value) {
+            if (nice(l->nice_value) == -1) {
+                /* best effort: continue with default priority */
+            }
+        }
         if (l->cpu_time_limit_s > 0) {
             struct rlimit r = {.rlim_cur = (rlim_t)l->cpu_time_limit_s,
                                .rlim_max = (rlim_t)(l->cpu_time_limit_s + 5)};

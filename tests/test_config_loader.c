@@ -27,8 +27,8 @@ static int test_merge_layers(void) {
     snprintf(d_ag, sizeof d_ag, "%s%s", tpl, CONFIG_DIR_PRIMARY);
     ASSERT_INT_EQ(mkdir(d_nev, 0755), 0);
     ASSERT_INT_EQ(mkdir(d_ag, 0755), 0);
-    snprintf(j1, sizeof j1, "%s%s", d_nev, NC_LAYER_CONFIG_FILE);
-    snprintf(j2, sizeof j2, "%s%s", d_ag, NC_LAYER_CONFIG_FILE);
+    snprintf(j1, sizeof j1, "%.254s%.254s", d_nev, NC_LAYER_CONFIG_FILE);
+    snprintf(j2, sizeof j2, "%.254s%.254s", d_ag, NC_LAYER_CONFIG_FILE);
     ASSERT_INT_EQ(write_file(j1, "{\"a\":1,\"nest\":{\"x\":1}}"), 0);
     ASSERT_INT_EQ(write_file(j2, "{\"b\":2,\"nest\":{\"y\":2}}"), 0);
 
@@ -52,7 +52,7 @@ static int test_reload_stale(void) {
     char d[512], j[512];
     snprintf(d, sizeof d, "%s%s", tpl, CONFIG_DIR_SECONDARY);
     ASSERT_INT_EQ(mkdir(d, 0755), 0);
-    snprintf(j, sizeof j, "%s%s", d, NC_LAYER_CONFIG_FILE);
+    snprintf(j, sizeof j, "%.254s%.254s", d, NC_LAYER_CONFIG_FILE);
     ASSERT_INT_EQ(write_file(j, "{\"k\":1}"), 0);
     config_loader_init();
     config_loader_load_all(tpl);
@@ -82,15 +82,16 @@ static int test_loads_home_layers(void) {
     ASSERT_INT_EQ(mkdir(d_secondary, 0755), 0);
     ASSERT_INT_EQ(mkdir(d_compat, 0755), 0);
 
-    snprintf(j_primary, sizeof j_primary, "%s%s", d_primary, NC_LAYER_CONFIG_FILE);
-    snprintf(j_secondary, sizeof j_secondary, "%s%s", d_secondary, NC_LAYER_CONFIG_FILE);
-    snprintf(j_compat, sizeof j_compat, "%s%s", d_compat, NC_LAYER_CONFIG_FILE);
+    snprintf(j_primary, sizeof j_primary, "%.254s%.254s", d_primary, NC_LAYER_CONFIG_FILE);
+    snprintf(j_secondary, sizeof j_secondary, "%.254s%.254s", d_secondary, NC_LAYER_CONFIG_FILE);
+    snprintf(j_compat, sizeof j_compat, "%.254s%.254s", d_compat, NC_LAYER_CONFIG_FILE);
     ASSERT_INT_EQ(write_file(j_primary, "{\"from_primary\":11}"), 0);
     ASSERT_INT_EQ(write_file(j_secondary, "{\"from_secondary\":22}"), 0);
     ASSERT_INT_EQ(write_file(j_compat, "{\"from_compat\":33}"), 0);
 
     const char *home_old = getenv("HOME");
     char *home_backup = home_old ? nc_xstrdup(home_old) : NULL;
+    nc_home_dir_reset();
     ASSERT_INT_EQ(setenv("HOME", home_tpl, 1), 0);
 
     config_loader_init();
@@ -106,6 +107,7 @@ static int test_loads_home_layers(void) {
     } else {
         ASSERT_INT_EQ(unsetenv("HOME"), 0);
     }
+    nc_home_dir_reset();
 
     nc_rm_rf(project_tpl);
     nc_rm_rf(home_tpl);
@@ -125,13 +127,14 @@ static int test_project_overrides_home_layers(void) {
     ASSERT_INT_EQ(mkdir(home_dir, 0755), 0);
     ASSERT_INT_EQ(mkdir(proj_dir, 0755), 0);
 
-    snprintf(home_json, sizeof home_json, "%s%s", home_dir, NC_LAYER_CONFIG_FILE);
-    snprintf(proj_json, sizeof proj_json, "%s%s", proj_dir, NC_LAYER_CONFIG_FILE);
+    snprintf(home_json, sizeof home_json, "%.254s%.254s", home_dir, NC_LAYER_CONFIG_FILE);
+    snprintf(proj_json, sizeof proj_json, "%.254s%.254s", proj_dir, NC_LAYER_CONFIG_FILE);
     ASSERT_INT_EQ(write_file(home_json, "{\"shared\":1,\"home_only\":2}"), 0);
     ASSERT_INT_EQ(write_file(proj_json, "{\"shared\":9,\"project_only\":3}"), 0);
 
     const char *home_old = getenv("HOME");
     char *home_backup = home_old ? nc_xstrdup(home_old) : NULL;
+    nc_home_dir_reset();
     ASSERT_INT_EQ(setenv("HOME", home_tpl, 1), 0);
 
     config_loader_init();
@@ -147,6 +150,7 @@ static int test_project_overrides_home_layers(void) {
     } else {
         ASSERT_INT_EQ(unsetenv("HOME"), 0);
     }
+    nc_home_dir_reset();
 
     nc_rm_rf(project_tpl);
     nc_rm_rf(home_tpl);

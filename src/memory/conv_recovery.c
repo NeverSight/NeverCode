@@ -106,7 +106,7 @@ int conv_recovery_save(const void *conv_ptr, const char *session_id) {
         return -1;
 
     char tmp_path[NC_PATH_MAX];
-    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", g_recovery_path);
+    snprintf(tmp_path, sizeof(tmp_path), "%.4089s.tmp", g_recovery_path);
     int rc = nc_write_file_str(tmp_path, json);
     free(json);
     if (rc)

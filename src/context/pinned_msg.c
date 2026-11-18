@@ -123,7 +123,7 @@ int pinned_msg_save(void) {
     nc_mkdir_p(path);
 
     char full[NC_PATH_MAX];
-    snprintf(full, sizeof(full), "%s%s.pins.json", path, g_pins.session_id);
+    snprintf(full, sizeof(full), "%.2040s%.2040s.pins.json", path, g_pins.session_id);
 
     cJSON *arr = cJSON_CreateIntArray(g_pins.indices, g_pins.count);
     if (!arr)
@@ -145,7 +145,7 @@ int pinned_msg_load(const char *sid) {
     config_home_path(path, sizeof(path), "/sessions/");
 
     char full[NC_PATH_MAX];
-    snprintf(full, sizeof(full), "%s%s.pins.json", path, sid);
+    snprintf(full, sizeof(full), "%.2040s%.2040s.pins.json", path, sid);
 
     char *buf = strbuf_read_file_max(full, NULL, NC_READ_CAP_JSON_SMALL);
     if (!buf)

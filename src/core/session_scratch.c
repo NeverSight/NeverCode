@@ -54,7 +54,7 @@ char *session_scratch_file(const char *name) {
     char *path = malloc(NC_PATH_MAX);
     if (!path)
         return NULL;
-    snprintf(path, NC_PATH_MAX, "%s/%s", g_scratch_path, name);
+    snprintf(path, NC_PATH_MAX, "%.2045s/%.2045s", g_scratch_path, name);
     return path;
 }
 

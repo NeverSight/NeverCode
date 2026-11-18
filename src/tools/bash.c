@@ -348,8 +348,10 @@ static int bash_exec_background(const char *cmd, const char *cwd, char **output)
             dup2(devnull, STDIN_FILENO);
             close(devnull);
         }
-        if (cwd && cwd[0])
-            (void)chdir(cwd);
+        if (cwd && cwd[0]) {
+            if (chdir(cwd) != 0)
+                cwd = NULL; /* proceed in the current directory */
+        }
         if (sandbox_enforcing() && os_sandbox_available())
             os_sandbox_apply();
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);

@@ -2,10 +2,14 @@ CC      ?= cc
 OBJDIR  := build
 CFLAGS  := -Wall -Wextra -Wformat=2 -Wno-format-nonliteral -Wno-unused-parameter -O2 \
            -Iinclude -Ithird_party/cJSON
-LDFLAGS := -lcurl -lpthread -lz
+LDFLAGS := -lcurl -lpthread -lz -lm
 
 # macOS readline (libedit compatible)
 UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+  # glibc exposes GNU extensions (O_PATH, FNM_CASEFOLD, ...) only under _GNU_SOURCE
+  CFLAGS  += -D_GNU_SOURCE
+endif
 ifeq ($(UNAME), Darwin)
   CFLAGS  += -DUSE_READLINE
   LDFLAGS += -lreadline -liconv -framework IOKit -framework CoreFoundation
@@ -286,7 +290,8 @@ UTILS_SRCS := src/utils/edit_match.c \
               src/utils/alloc_track.c \
               src/utils/shell_completion.c \
               src/utils/file_read_cache.c \
-              src/utils/generated_detect.c
+              src/utils/generated_detect.c \
+              src/utils/url_guard.c
 
 REVIEW_SRCS := src/review/review_format.c \
                src/review/review_integration.c \
@@ -429,11 +434,10 @@ $(OBJDIR)/tests/%.o: tests/%.c $(NC_INCLUDE_HDRS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -DUNIFIED_TEST -c -o $@ $<
 
-# Stack size for test binaries (pipeline orchestrator structs are large)
+# Note: test binaries declare multi-MB orchestrator structs as function-local
+# `static` (BSS) rather than on the stack, so no stack-size games are needed.
 ifeq ($(UNAME), Darwin)
   TEST_LDFLAGS := -Wl,-stack_size,0x8000000
-else ifeq ($(UNAME), Linux)
-  TEST_LDFLAGS := -Wl,-z,stacksize=134217728
 else
   TEST_LDFLAGS :=
 endif

@@ -7,6 +7,8 @@
  */
 
 #include "test.h"
+#include <stdint.h>
+#include <string.h>
 #include "nevercode.h"
 
 #ifdef NEVERCODE_DEBUG_ALLOC
@@ -65,8 +67,9 @@ static int test_update_realloc(void) {
     alloc_track_record(p, 64, __FILE__, __LINE__);
     ASSERT_INT_EQ(alloc_track_leak_count(), ALLOC_ACTIVE);
 
+    void *volatile p_old = p; /* volatile read: only the address bits are wanted */
     char *q = realloc(p, 256);
-    alloc_track_update(p, q, 256, __FILE__, __LINE__);
+    alloc_track_update(p_old, q, 256, __FILE__, __LINE__);
     ASSERT_INT_EQ(alloc_track_leak_count(), ALLOC_ACTIVE);
     ASSERT(alloc_track_active_bytes() == (ALLOC_ACTIVE ? 256u : 0u));
 

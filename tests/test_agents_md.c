@@ -76,7 +76,7 @@ static int test_hierarchical_msg_format(void) {
     write_file(tmpdir, ""); /* ensure parent exists */
     char f1[512], f2[512];
     snprintf(f1, sizeof(f1), "%s/AGENTS.md", tmpdir);
-    snprintf(f2, sizeof(f2), "%s/sub/AGENTS.md", subdir);
+    snprintf(f2, sizeof(f2), "%.496s/sub/AGENTS.md", subdir);
     write_file(f1, "# Root agents\nBe helpful\n");
     write_file(f2, "# Sub agents\nOverride rules\n");
 
@@ -192,7 +192,7 @@ static int test_nested_deeper_dir_appended_later(void) {
 
     char root_doc[512], sub_doc[512];
     snprintf(root_doc, sizeof(root_doc), "%s/AGENTS.md", tmpdir);
-    snprintf(sub_doc, sizeof(sub_doc), "%s/AGENTS.md", subdir);
+    snprintf(sub_doc, sizeof(sub_doc), "%.500s/AGENTS.md", subdir);
     write_file(root_doc, "ROOT_SCOPE_RULE\n");
     write_file(sub_doc, "SUB_SCOPE_RULE\n");
 
@@ -225,7 +225,7 @@ static int test_lowercase_user_doc_loaded(void) {
     mkdir_p(agents_dir);
 
     char user_doc[512];
-    snprintf(user_doc, sizeof(user_doc), "%s/claude.md", agents_dir);
+    snprintf(user_doc, sizeof(user_doc), "%.499s/claude.md", agents_dir);
     write_file(user_doc, "user lowercase claude\n");
 
     const char *old_home = getenv(ENV_HOME);
@@ -299,8 +299,8 @@ static int test_user_prefers_override_doc(void) {
     mkdir_p(agents_dir);
 
     char f_base[512], f_override[512];
-    snprintf(f_base, sizeof(f_base), "%s/AGENTS.md", agents_dir);
-    snprintf(f_override, sizeof(f_override), "%s/AGENTS.override.md", agents_dir);
+    snprintf(f_base, sizeof(f_base), "%.499s/AGENTS.md", agents_dir);
+    snprintf(f_override, sizeof(f_override), "%.491s/AGENTS.override.md", agents_dir);
     write_file(f_base, "USER_BASE\n");
     write_file(f_override, "USER_OVERRIDE\n");
 
@@ -337,7 +337,7 @@ static int test_dot_agents_compat_override_loaded(void) {
     char subdir[512], dot_agents[512], f_override[512];
     snprintf(subdir, sizeof(subdir), "%s/sub", tmpdir);
     snprintf(dot_agents, sizeof(dot_agents), "%s/.agents", tmpdir);
-    snprintf(f_override, sizeof(f_override), "%s/CLAUDE.override.md", dot_agents);
+    snprintf(f_override, sizeof(f_override), "%.491s/CLAUDE.override.md", dot_agents);
     mkdir_p(subdir);
     mkdir_p(dot_agents);
     write_file(f_override, "dot-agents-claude-override\n");
@@ -364,10 +364,10 @@ static int test_does_not_read_docs_above_project_root(void) {
     snprintf(root, sizeof(root), "/tmp/nevercode_test_proj_root_%d", (int)getpid());
     char repo[512], subdir[512], outside_doc[512], root_doc[512], git_marker[512];
     snprintf(repo, sizeof(repo), "%s/repo", root);
-    snprintf(subdir, sizeof(subdir), "%s/sub", repo);
+    snprintf(subdir, sizeof(subdir), "%.505s/sub", repo);
     snprintf(outside_doc, sizeof(outside_doc), "%s/AGENTS.md", root);
-    snprintf(root_doc, sizeof(root_doc), "%s/AGENTS.md", repo);
-    snprintf(git_marker, sizeof(git_marker), "%s/.git", repo);
+    snprintf(root_doc, sizeof(root_doc), "%.499s/AGENTS.md", repo);
+    snprintf(git_marker, sizeof(git_marker), "%.505s/.git", repo);
 
     mkdir_p(subdir);
     write_file(git_marker, "gitdir: fake\n");

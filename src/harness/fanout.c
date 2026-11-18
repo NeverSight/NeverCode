@@ -7,9 +7,11 @@
 
 #include "harness.h"
 
+/* Width of the numeric suffix used in generated ids: digits needed so that
+ * lexical id ordering matches numeric ordering (clamped to [1, 9]). */
 static int _suffix_width(int total) {
     int w = 1;
-    while (total >= 10) {
+    while (total >= 10 && w < 9) {
         total /= 10;
         w++;
     }
@@ -53,22 +55,23 @@ int fanout_expand(fanout_spec_t *f, pipeline_t *p) {
         return -1;
 
     int width = _suffix_width(total);
+    width = width > 9 ? 9 : width;
     f->nexpanded = 0;
 
     for (int i = 0; i < total; i++) {
         char id[PIPE_ID_MAX];
-        snprintf(id, sizeof(id), "%s_%0*d", f->group_id, width, i);
+        snprintf(id, sizeof(id), "%.52s_%0*d", f->group_id, width, i);
         nc_strlcpy(f->expanded_ids[f->nexpanded], id, sizeof(f->expanded_ids[0]));
         f->nexpanded++;
 
         if (p) {
             char prompt[PIPE_PROMPT_MAX];
             if (f->mode == FANOUT_VALUES && f->values[i])
-                snprintf(prompt, sizeof(prompt), "%s\n\nItem: %s\nIndex: %d/%d", f->template_prompt,
-                         f->values[i], i + 1, total);
+                snprintf(prompt, sizeof(prompt), "%.700s\n\nItem: %.200s\nIndex: %d/%d",
+                         f->template_prompt, f->values[i], i + 1, total);
             else
-                snprintf(prompt, sizeof(prompt), "%s\n\nShard: %d/%d  ID: %s", f->template_prompt,
-                         i + 1, total, id);
+                snprintf(prompt, sizeof(prompt), "%.760s\n\nShard: %d/%d  ID: %s",
+                         f->template_prompt, i + 1, total, id);
 
             pipeline_add_node(p, id, prompt);
         }
@@ -127,11 +130,12 @@ int merge_expand(merge_spec_t *m, const fanout_spec_t *src, pipeline_t *p, const
     }
 
     int width = _suffix_width(batch_count);
+    width = width > 9 ? 9 : width;
     m->nbatches = 0;
 
     for (int b = 0; b < batch_count && m->nbatches < FANOUT_MAX_COPIES; b++) {
         char id[PIPE_ID_MAX];
-        snprintf(id, sizeof(id), "%s_%0*d", m->group_id, width, b);
+        snprintf(id, sizeof(id), "%.52s_%0*d", m->group_id, width, b);
 
         int start = b * m->batch_size;
         int end = start + m->batch_size;
@@ -139,7 +143,7 @@ int merge_expand(merge_spec_t *m, const fanout_spec_t *src, pipeline_t *p, const
             end = total;
 
         char prompt[PIPE_PROMPT_MAX];
-        snprintf(prompt, sizeof(prompt), "%s\n\nBatch: %d/%d  Source: %s  Members: %d-%d of %d",
+        snprintf(prompt, sizeof(prompt), "%.640s\n\nBatch: %d/%d  Source: %.80s  Members: %d-%d of %d",
                  tpl, b + 1, batch_count, m->source_group, start + 1, end, total);
 
         pipeline_add_node(p, id, prompt);

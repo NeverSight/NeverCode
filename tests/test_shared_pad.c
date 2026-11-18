@@ -3,7 +3,7 @@
 #include "harness.h"
 
 static int t_init_and_append(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     ASSERT_INT_EQ(shared_pad_line_count(&sp), 0);
     ASSERT_INT_EQ(shared_pad_append(&sp, "agent-1", "finding A"), 0);
@@ -13,7 +13,7 @@ static int t_init_and_append(void) {
 }
 
 static int t_merge_dedup(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     shared_pad_merge(&sp, "a1", "line1\nline2\nline1");
     ASSERT_INT_EQ(shared_pad_line_count(&sp), 2);
@@ -22,7 +22,7 @@ static int t_merge_dedup(void) {
 }
 
 static int t_read_content(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     shared_pad_append(&sp, "bot", "hello world");
     char *out = shared_pad_read(&sp);
@@ -35,7 +35,7 @@ static int t_read_content(void) {
 }
 
 static int t_snapshot_restore(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     shared_pad_append(&sp, "x", "data");
 
@@ -43,7 +43,7 @@ static int t_snapshot_restore(void) {
     shared_pad_snapshot(&sp, &snap);
     ASSERT_INT_EQ(snap.count, 1);
 
-    shared_pad_t sp2;
+    static shared_pad_t sp2;
     shared_pad_init(&sp2);
     shared_pad_restore(&sp2, &snap);
     ASSERT_INT_EQ(shared_pad_line_count(&sp2), 1);
@@ -54,7 +54,7 @@ static int t_snapshot_restore(void) {
 }
 
 static int t_empty_text_rejected(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     ASSERT_INT_EQ(shared_pad_append(&sp, "a", ""), -1);
     ASSERT_INT_EQ(shared_pad_append(&sp, "a", NULL), -1);
@@ -64,7 +64,7 @@ static int t_empty_text_rejected(void) {
 }
 
 static int t_run_token(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
     shared_pad_set_run_token(&sp, "tok-42");
     ASSERT_STR_EQ(sp.current_run_token, "tok-42");

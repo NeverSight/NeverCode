@@ -120,8 +120,8 @@ static migrate_status_t migrate_compat_dirs(const char *home) {
         const char *files[] = {NC_CFG_CONFIG, NC_DOC_AGENTS_BASE_UPPER, NC_CFG_SETTINGS, NULL};
         for (int i = 0; files[i]; i++) {
             char sf[NC_PATH_MAX], df[NC_PATH_MAX];
-            snprintf(sf, sizeof(sf), "%s/%s", src, files[i]);
-            snprintf(df, sizeof(df), "%s/%s", dst, files[i]);
+            snprintf(sf, sizeof(sf), "%.2045s/%.2045s", src, files[i]);
+            snprintf(df, sizeof(df), "%.2045s/%.2045s", dst, files[i]);
             struct stat fs;
             if (stat(sf, &fs) == 0 && stat(df, &fs) != 0) {
                 if (link(sf, df) != 0)

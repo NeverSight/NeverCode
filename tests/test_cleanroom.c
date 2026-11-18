@@ -7,7 +7,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#ifdef __APPLE__
 #include <mach-o/dyld.h>
+#endif
+#include <unistd.h>
 
 static int has_c_or_h_suffix(const char *name) {
     const char *dot = strrchr(name, '.');
@@ -76,16 +79,32 @@ static int test_no_telemetry_or_spy_keywords_in_source(void) {
     /* Resolve src/ relative to the executable's directory, not CWD
      * (earlier tests may chdir). */
     char exe_path[NC_PATH_MAX];
+#ifdef __APPLE__
     uint32_t sz = sizeof(exe_path);
+#endif
     char src_dir[NC_PATH_MAX];
+#ifdef __APPLE__
     if (_NSGetExecutablePath(exe_path, &sz) == 0) {
         char *slash = strrchr(exe_path, '/');
         if (slash)
             *slash = '\0';
         snprintf(src_dir, sizeof(src_dir), "%s/src", exe_path);
     } else {
-        snprintf(src_dir, sizeof(src_dir), "src");
+#endif
+        /* Fallback (and Linux path): resolve relative to CWD, then executable dir */
+        if (access("src", R_OK) == 0) {
+            snprintf(src_dir, sizeof(src_dir), "src");
+        } else if (realpath("/proc/self/exe", exe_path)) {
+            char *slash = strrchr(exe_path, '/');
+            if (slash)
+                *slash = '\0';
+            snprintf(src_dir, sizeof(src_dir), "%.4089s/src", exe_path);
+        } else {
+            snprintf(src_dir, sizeof(src_dir), "src");
+        }
+#ifdef __APPLE__
     }
+#endif
 
     int scanned = 0;
     int rc = scan_dir_no_telemetry(src_dir, keywords, NC_ARRAY_LEN(keywords), &scanned);

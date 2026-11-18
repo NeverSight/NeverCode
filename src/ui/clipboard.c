@@ -73,6 +73,7 @@ static int fork_to_file(const char *const argv[], const char *out_path) {
 }
 #endif
 
+#ifdef __APPLE__
 static int fork_quiet(const char *const argv[]) {
     pid_t pid = fork();
     if (pid < 0)
@@ -91,6 +92,7 @@ static int fork_quiet(const char *const argv[]) {
     waitpid(pid, &st, 0);
     return (WIFEXITED(st) && WEXITSTATUS(st) == 0) ? 0 : -1;
 }
+#endif /* __APPLE__ */
 
 char *clipboard_read_text(void) {
 #ifdef __APPLE__

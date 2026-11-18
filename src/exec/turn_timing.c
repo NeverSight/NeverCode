@@ -71,7 +71,7 @@ char *turn_timing_format(void) {
 
     for (int i = 0; i < g_record_count; i++) {
         turn_record_t *r = &g_records[i];
-        char ttft_str[NC_NUM_MAX];
+        char ttft_str[32];
         if (r->ttft_ms >= 0) {
             snprintf(ttft_str, sizeof(ttft_str), "%8ld", r->ttft_ms);
             total_ttft += r->ttft_ms;

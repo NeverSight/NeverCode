@@ -29,13 +29,13 @@ typedef struct {
 
 static bool has_manifest(const char *dir_path) {
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/manifest.json", dir_path);
+    snprintf(path, sizeof(path), "%.4079s/manifest.json", dir_path);
     return nc_file_exists(path);
 }
 
 static int read_manifest_info(const char *dir_path, discoverable_plugin_t *out) {
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/manifest.json", dir_path);
+    snprintf(path, sizeof(path), "%.4079s/manifest.json", dir_path);
 
     char *buf = strbuf_read_file_max(path, NULL, NC_READ_CAP_JSON_SMALL);
     if (!buf)

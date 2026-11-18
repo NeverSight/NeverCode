@@ -540,8 +540,11 @@ int agent_pool_send_message(agent_pool_t *p, const char *agent_id, const char *m
             ssize_t w = write(a->pipe_in, message, len);
             if (w < 0)
                 return -3;
-            if (message[len - 1] != '\n')
-                write(a->pipe_in, "\n", 1);
+            if (message[len - 1] != '\n') {
+                if (write(a->pipe_in, "\n", 1) < 0) {
+                    /* pipe closed mid-send: nothing more to flush */
+                }
+            }
             return 0;
         }
     }

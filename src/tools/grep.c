@@ -56,19 +56,19 @@ static int grep_exec(const cJSON *input, char **output, void *ctx) {
     char search_path[NC_PATH_MAX];
     if (path && path[0])
         nc_strlcpy(search_path, path, sizeof(search_path));
-    else
-        getcwd(search_path, sizeof(search_path));
+    else if (!getcwd(search_path, sizeof(search_path)))
+        search_path[0] = '\0';
 
     strbuf_t cmd;
     strbuf_init(&cmd);
 
     if (check_has_rg()) {
-        char mc_arg[NC_SHORT_MAX];
+        char mc_arg[64];
         snprintf(mc_arg, sizeof(mc_arg), "rg --no-heading --line-number --max-count %d ",
                  GREP_MAX_MATCHES);
         strbuf_append_str(&cmd, mc_arg);
         if (context_n > 0) {
-            char ctx_arg[NC_SHORT_MAX];
+            char ctx_arg[32];
             snprintf(ctx_arg, sizeof(ctx_arg), "-C %d ", context_n);
             strbuf_append_str(&cmd, ctx_arg);
         }
@@ -85,7 +85,7 @@ static int grep_exec(const cJSON *input, char **output, void *ctx) {
     } else {
         strbuf_append_str(&cmd, "grep -rn ");
         if (context_n > 0) {
-            char ctx_arg[NC_SHORT_MAX];
+            char ctx_arg[32];
             snprintf(ctx_arg, sizeof(ctx_arg), "-C %d ", context_n);
             strbuf_append_str(&cmd, ctx_arg);
         }

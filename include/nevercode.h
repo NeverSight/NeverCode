@@ -121,11 +121,16 @@ static inline char *nc_xstrdup(const char *s) {
 static inline char *nc_xstrndup(const char *s, size_t n) {
     if (!s)
         return NULL;
-    char *d = strndup(s, n);
+    size_t len = strlen(s);
+    if (len > n)
+        len = n;
+    char *d = malloc(len + 1);
     if (!d) {
         fprintf(stderr, "fatal: out of memory (strndup)\n");
         abort();
     }
+    memcpy(d, s, len);
+    d[len] = '\0';
     return d;
 }
 
@@ -224,7 +229,7 @@ static inline int nc_rm_rf(const char *path) {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
         char child[NC_PATH_MAX];
-        snprintf(child, sizeof(child), "%s/%s", path, ent->d_name);
+        snprintf(child, sizeof(child), "%.2045s/%.2045s", path, ent->d_name);
         if (nc_rm_rf(child) != 0)
             rc = -1;
     }
@@ -240,6 +245,15 @@ static inline bool nc_contains_ci(const char *haystack, const char *needle) {
         return false;
     return strcasestr(haystack, needle) != NULL;
 }
+
+/* Outbound HTTP(S) safety guard (SSRF protection) — see src/utils/url_guard.c.
+ * struct curl_sockaddr is forward-declared; curl-typed helper lives in
+ * include/url_guard.h which includes <curl/curl.h>. */
+struct curl_sockaddr;
+bool nc_url_scheme_http_https(const char *url);
+bool nc_ipv4_is_public(uint32_t be_addr);
+bool nc_ipv6_is_public(const unsigned char s[16]);
+bool nc_sockaddr_is_public(const struct curl_sockaddr *addr);
 
 /* Skip leading whitespace, returning pointer to first non-whitespace char. */
 static inline const char *nc_skip_ws(const char *s) {
@@ -401,7 +415,9 @@ static inline uint32_t nc_rand_u32(void) {
         return v;
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) {
-        (void)read(fd, &v, sizeof(v));
+        ssize_t _n = read(fd, &v, sizeof(v));
+        if (_n != (ssize_t)sizeof(v))
+            v = 0;
         close(fd);
         return v;
     }
@@ -1175,7 +1191,7 @@ typedef enum {
 
 int history_save(const conversation_t *c, const char *id);
 int history_load(conversation_t *c, const char *id);
-int history_list(char **out);
+int nc_session_history_list(char **out);
 char *history_gen_session_id(void);
 char *history_find_latest(void);
 int history_rename(const char *session_id, const char *name);
@@ -2081,6 +2097,9 @@ const char *plugin_event_name(plugin_event_t ev);
 char *plugin_format_list(const plugin_registry_t *r);
 int plugin_discover_defaults(plugin_registry_t *r, const char *project_root);
 int plugin_discover_home_plugin_count(void);
+int plugin_file_loadable(const char *path);
+bool plugin_project_plugins_allowed(void);
+const char *plugin_market_plugin_sha256(int market_idx, int plugin_idx);
 
 /* ── Memory Citations ── */
 

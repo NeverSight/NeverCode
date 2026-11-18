@@ -15,6 +15,7 @@ extern int test_config_all(void);
 extern int test_tools_all(void);
 extern int test_history_all(void);
 extern int test_url_normalize_all(void);
+extern int test_url_guard_all(void);
 extern int test_live_compat_optional_all(void);
 extern int test_tools_extra_all(void);
 extern int test_sse_parsing_all(void);
@@ -447,6 +448,7 @@ int main(void) {
     total_failed += test_history_all();
     suites_run++;
     total_failed += test_url_normalize_all();
+    total_failed += test_url_guard_all();
     suites_run++;
     total_failed += test_live_compat_optional_all();
     suites_run++;

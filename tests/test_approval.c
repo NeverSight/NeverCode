@@ -69,7 +69,7 @@ static int test_approval_default_mode(void) {
     perm_ctx_t p;
     perm_init(&p);
     perm_set_approval(&p, APPROVAL_DEFAULT);
-    ASSERT(p.trust_all == true);
+    ASSERT(p.trust_all == false);
     perm_decision_t d = perm_check(&p, "Read", NULL);
     ASSERT_INT_EQ(d, PERM_ALLOW);
     d = perm_check(&p, "Bash", NULL);

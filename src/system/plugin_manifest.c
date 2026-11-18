@@ -115,9 +115,9 @@ int plugin_manifest_discover(const char *dir) {
         if (stat(sd, &st) != 0 || !S_ISDIR(st.st_mode))
             continue;
         char mp[NC_PATH_MAX];
-        snprintf(mp, sizeof(mp), "%s/manifest.json", sd);
+        snprintf(mp, sizeof(mp), "%.4079s/manifest.json", sd);
         if (access(mp, F_OK) != 0)
-            snprintf(mp, sizeof(mp), "%s/plugin.json", sd);
+            snprintf(mp, sizeof(mp), "%.4081s/plugin.json", sd);
         if (access(mp, F_OK) != 0)
             continue;
         if (plugin_manifest_load_file(mp) == 0)

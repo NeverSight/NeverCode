@@ -15,7 +15,10 @@ static char g_tmpdir[256];
 
 static void setup_tmpdir(void) {
     snprintf(g_tmpdir, sizeof(g_tmpdir), "/tmp/nc_test_turndiff_XXXXXX");
-    mkdtemp(g_tmpdir);
+    if (mkdtemp(g_tmpdir) == NULL) {
+        fprintf(stderr, "mkdtemp failed\n");
+        exit(1);
+    }
 }
 
 static void write_file(const char *path, const char *content) {

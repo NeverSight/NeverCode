@@ -44,7 +44,7 @@ static int test_compat_dirs_copies_config(void) {
     snprintf(cld, sizeof(cld), "%s/.claude", base);
     ASSERT_INT_EQ(0, mkdir(cld, 0755));
     char cfg[320];
-    snprintf(cfg, sizeof(cfg), "%s/config.json", cld);
+    snprintf(cfg, sizeof(cfg), "%.305s/config.json", cld);
     FILE *wf = fopen(cfg, "w");
     ASSERT_NOT_NULL(wf);
     fprintf(wf, "{\"x\":1}");

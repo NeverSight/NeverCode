@@ -106,7 +106,7 @@ onboard_state_t onboard_detect(const char *project_root) {
 
     /* check marker */
     char marker[NC_PATH_MAX];
-    snprintf(marker, sizeof(marker), "%s/%s", g_ob.config_home, OB_MARKER_FILE);
+    snprintf(marker, sizeof(marker), "%.2045s/%.2045s", g_ob.config_home, OB_MARKER_FILE);
 
     if (nc_path_exists(marker)) {
         g_ob.state = OB_STATE_ONBOARDED;
@@ -141,16 +141,16 @@ int onboard_setup(void) {
         mkdir(g_ob.config_home, NC_DIR_MODE);
 
     char sessions[NC_PATH_MAX];
-    snprintf(sessions, sizeof(sessions), "%s/sessions", g_ob.config_home);
+    snprintf(sessions, sizeof(sessions), "%.4084s/sessions", g_ob.config_home);
     mkdir(sessions, NC_DIR_MODE);
 
     char plugins[NC_PATH_MAX];
-    snprintf(plugins, sizeof(plugins), "%s/plugins", g_ob.config_home);
+    snprintf(plugins, sizeof(plugins), "%.4085s/plugins", g_ob.config_home);
     mkdir(plugins, NC_DIR_MODE);
 
     /* create marker */
     char marker[NC_PATH_MAX];
-    snprintf(marker, sizeof(marker), "%s/%s", g_ob.config_home, OB_MARKER_FILE);
+    snprintf(marker, sizeof(marker), "%.2045s/%.2045s", g_ob.config_home, OB_MARKER_FILE);
     FILE *f = fopen(marker, "w");
     if (f) {
         fprintf(f, "%ld\n", nc_wall_sec());

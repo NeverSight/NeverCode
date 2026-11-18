@@ -14,7 +14,7 @@ static int test_detect_from_cwd(void) {
 static int test_detect_with_git(void) {
     project_root_reset();
     char cwd[4096];
-    getcwd(cwd, sizeof(cwd));
+    ASSERT(getcwd(cwd, sizeof(cwd)) != NULL);
     const char *root = project_root_detect(cwd);
     ASSERT_NOT_NULL(root);
     return 0;

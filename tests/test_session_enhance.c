@@ -12,7 +12,7 @@ extern int history_load(conversation_t *c, const char *id);
 extern int history_rename(const char *session_id, const char *name);
 extern char *history_find_latest(void);
 extern char *history_gen_session_id(void);
-extern int history_list(char **out);
+extern int nc_session_history_list(char **out);
 
 static int test_rename_session(void) {
     conversation_t conv;
@@ -24,7 +24,7 @@ static int test_rename_session(void) {
     ASSERT_INT_EQ(history_rename(sid, "my test session"), 0);
 
     char *listing = NULL;
-    history_list(&listing);
+    nc_session_history_list(&listing);
     ASSERT(strstr(listing, "my test session") != NULL);
     free(listing);
 
@@ -85,7 +85,7 @@ static int test_history_list_with_name(void) {
     history_rename(sid, "Feature Branch");
 
     char *listing = NULL;
-    int n = history_list(&listing);
+    int n = nc_session_history_list(&listing);
     ASSERT(n > 0);
     ASSERT(strstr(listing, "[Feature Branch]") != NULL);
     free(listing);

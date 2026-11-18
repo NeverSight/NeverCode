@@ -96,7 +96,7 @@ void workflow_discover(void) {
                 continue;
 
             char fpath[NC_PATH_MAX];
-            snprintf(fpath, sizeof(fpath), "%s/%s", search_dirs[d], ent->d_name);
+            snprintf(fpath, sizeof(fpath), "%.2045s/%.2045s", search_dirs[d], ent->d_name);
 
             struct stat st;
             if (stat(fpath, &st) != 0 || !S_ISREG(st.st_mode))

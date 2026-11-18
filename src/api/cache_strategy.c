@@ -39,16 +39,14 @@ int cache_strategy_mark(message_t *msgs, int len, int max_breakpoints) {
     if (remaining <= 0)
         return placed;
 
-    /* Find indices of non-system messages (reverse order) */
-    int candidates[CACHE_STRATEGY_MAX_BREAKPOINTS];
-    int ncand = 0;
-    for (int i = len - 1; i >= 0 && ncand < remaining; i--) {
+    /* Count non-system messages (from the tail) that fit remaining breakpoints */
+    for (int i = len - 1; i >= 0 && remaining > 0; i--) {
         if (msgs[i].role != ROLE_SYSTEM && msgs[i].num_blocks > 0) {
-            candidates[ncand++] = i;
+            placed++;
+            remaining--;
         }
     }
 
-    placed += ncand;
     return placed;
 }
 

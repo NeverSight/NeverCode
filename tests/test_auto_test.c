@@ -128,22 +128,22 @@ static int t_at_snapshot_restore(void) {
     char path[256];
     snprintf(root, sizeof(root), "/tmp/nc_at_snap_%d", (int)getpid());
     mkdir(root, 0755);
-    snprintf(tests_dir, sizeof(tests_dir), "%s/tests", root);
+    snprintf(tests_dir, sizeof(tests_dir), "%.247s/tests", root);
     mkdir(tests_dir, 0755);
 
-    snprintf(path, sizeof(path), "%s/Makefile", root);
+    snprintf(path, sizeof(path), "%.244s/Makefile", root);
     FILE *f = fopen(path, "w");
     if (f) {
         fprintf(f, "all:\n");
         fclose(f);
     }
-    snprintf(path, sizeof(path), "%s/tests/test_main.c", root);
+    snprintf(path, sizeof(path), "%.235s/tests/test_main.c", root);
     f = fopen(path, "w");
     if (f) {
         fprintf(f, "/* stub */\n");
         fclose(f);
     }
-    snprintf(path, sizeof(path), "%s/tests/test_alpha.c", root);
+    snprintf(path, sizeof(path), "%.234s/tests/test_alpha.c", root);
     f = fopen(path, "w");
     if (f) {
         fprintf(f, "/* alpha */\n");
@@ -183,12 +183,12 @@ static int t_at_snapshot_restore(void) {
     free(tf);
     auto_test_free();
 
-    snprintf(path, sizeof(path), "%s/tests/test_alpha.c", root);
+    snprintf(path, sizeof(path), "%.234s/tests/test_alpha.c", root);
     remove(path);
-    snprintf(path, sizeof(path), "%s/tests/test_main.c", root);
+    snprintf(path, sizeof(path), "%.235s/tests/test_main.c", root);
     remove(path);
     rmdir(tests_dir);
-    snprintf(path, sizeof(path), "%s/Makefile", root);
+    snprintf(path, sizeof(path), "%.244s/Makefile", root);
     remove(path);
     rmdir(root);
     return 0;

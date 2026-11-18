@@ -79,9 +79,9 @@ preflight_report_t session_preflight_run(void) {
 
     if (cwd[0]) {
         char path[NC_PATH_MAX];
-        snprintf(path, sizeof(path), "%s/%s", cwd, PROGRESS_FILE);
+        snprintf(path, sizeof(path), "%.2045s/%.2045s", cwd, PROGRESS_FILE);
         r.progress_file_exists = nc_path_exists(path);
-        snprintf(path, sizeof(path), "%s/%s", cwd, FLIST_FILE);
+        snprintf(path, sizeof(path), "%.2045s/%.2045s", cwd, FLIST_FILE);
         r.feature_file_exists = nc_path_exists(path);
     }
 

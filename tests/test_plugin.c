@@ -1,5 +1,11 @@
 #include "test.h"
 #include "nevercode.h"
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 static int gi = 0, gu = 0, gh = 0;
 static void *mi(void) {
     gi++;
@@ -123,6 +129,78 @@ static int tc(void) {
     plugin_registry_free(&r);
     return 0;
 }
+
+static int td1(void) {
+    char tmpl[] = "/tmp/nevercode_test_loadable_XXXXXX";
+    int fd = mkstemp(tmpl);
+    ASSERT(fd >= 0);
+    close(fd);
+    ASSERT_INT_EQ(plugin_file_loadable(tmpl), 0);
+    unlink(tmpl);
+    return 0;
+}
+static int td2(void) {
+    char tmpl[] = "/tmp/nevercode_test_writable_XXXXXX";
+    int fd = mkstemp(tmpl);
+    ASSERT(fd >= 0);
+    ASSERT(fchmod(fd, 0664) == 0); /* group-writable */
+    close(fd);
+    ASSERT_INT_EQ(plugin_file_loadable(tmpl), -1);
+    unlink(tmpl);
+    return 0;
+}
+static int td3(void) {
+    char tmpl[] = "/tmp/nevercode_test_fifo_XXXXXX";
+    char *dir = mkdtemp(tmpl);
+    ASSERT(dir != NULL);
+    char fifo[NC_PATH_MAX];
+    snprintf(fifo, sizeof(fifo), "%s/p.so", dir);
+    ASSERT(mkfifo(fifo, 0644) == 0);
+    ASSERT_INT_EQ(plugin_file_loadable(fifo), -1);
+    unlink(fifo);
+    rmdir(dir);
+    return 0;
+}
+static int td4(void) {
+    ASSERT_INT_EQ(plugin_file_loadable("/tmp/nevercode-nonexistent-plugin.so"), -1);
+    ASSERT_INT_EQ(plugin_file_loadable(NULL), -1);
+    ASSERT_INT_EQ(plugin_file_loadable(""), -1);
+    return 0;
+}
+static int td5(void) {
+    const char *old = getenv("NEVERCODE_PROJECT_PLUGINS");
+    char *backup = old ? nc_xstrdup(old) : NULL;
+    unsetenv("NEVERCODE_PROJECT_PLUGINS");
+    ASSERT(!plugin_project_plugins_allowed());
+    setenv("NEVERCODE_PROJECT_PLUGINS", "1", 1);
+    ASSERT(plugin_project_plugins_allowed());
+    setenv("NEVERCODE_PROJECT_PLUGINS", "0", 1);
+    ASSERT(!plugin_project_plugins_allowed());
+    if (backup) {
+        setenv("NEVERCODE_PROJECT_PLUGINS", backup, 1);
+        free(backup);
+    } else {
+        unsetenv("NEVERCODE_PROJECT_PLUGINS");
+    }
+    return 0;
+}
+static int td6(void) {
+    char tmpl[] = "/tmp/nevercode_test_wwdir_XXXXXX";
+    char *dir = mkdtemp(tmpl);
+    ASSERT(dir != NULL);
+    ASSERT(chmod(dir, 0777) == 0); /* world-writable, non-sticky */
+    char sobuf[NC_PATH_MAX];
+    snprintf(sobuf, sizeof(sobuf), "%s/test.so", dir);
+    int fd = open(sobuf, O_CREAT | O_WRONLY, 0644);
+    ASSERT(fd >= 0);
+    close(fd);
+    ASSERT_INT_EQ(plugin_file_loadable(sobuf), -1); /* parent world-writable: refuse */
+    unlink(sobuf);
+    ASSERT(chmod(dir, 0700) == 0);
+    ASSERT_INT_EQ(plugin_file_loadable(sobuf), -1); /* file removed: refuse */
+    rmdir(dir);
+    return 0;
+}
 int test_plugin_all(void) {
     TEST_SUITE("plugin");
     TEST_COUNTERS;
@@ -138,5 +216,11 @@ int test_plugin_all(void) {
     RUN_TEST(ta);
     RUN_TEST(tb);
     RUN_TEST(tc);
+    RUN_TEST(td1);
+    RUN_TEST(td2);
+    RUN_TEST(td3);
+    RUN_TEST(td4);
+    RUN_TEST(td5);
+    RUN_TEST(td6);
     TEST_RETURN_FAILED();
 }

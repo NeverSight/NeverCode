@@ -113,7 +113,7 @@ int checkpoint_discipline_create(int turn) {
     memset(e, 0, sizeof(*e));
     e->turn = turn;
     e->timestamp = nc_wall_sec();
-    snprintf(e->tag, sizeof(e->tag), "%s/%s/t%d", NC_CHECKPOINT_TAG_PREFIX,
+    snprintf(e->tag, sizeof(e->tag), "%.46s/%.46s/t%d", NC_CHECKPOINT_TAG_PREFIX,
              g_cp.session_id[0] ? g_cp.session_id : "default", turn);
 
     char message[NC_LABEL_MAX];

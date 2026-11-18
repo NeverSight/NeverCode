@@ -219,17 +219,30 @@ static void bash_resolve_base_dir(const cJSON *input, char *out, size_t cap) {
         if (wd[0] == '~') {
             const char *home = nc_home_dir();
             if (home)
-                snprintf(out, cap, "%s/%s", home, wd + 2);
+                {
+                char joined[2 * NC_PATH_MAX];
+                int _n = snprintf(joined, sizeof(joined), "%.4095s/%.4095s", home, wd + 2);
+                if (_n > 0)
+                    nc_strlcpy(out, joined, cap);
+                else
+                    nc_strlcpy(out, wd, cap);
+            }
             else
                 nc_strlcpy(out, wd, cap);
         } else
             nc_strlcpy(out, wd, cap);
         return;
     }
-    if (getcwd(cwd, sizeof(cwd)))
-        snprintf(out, cap, "%s/%s", cwd, wd);
-    else
+    if (getcwd(cwd, sizeof(cwd))) {
+        char joined[2 * NC_PATH_MAX];
+        int _n = snprintf(joined, sizeof(joined), "%.4095s/%.4095s", cwd, wd);
+        if (_n > 0)
+            nc_strlcpy(out, joined, cap);
+        else
+            nc_strlcpy(out, wd, cap);
+    } else {
         nc_strlcpy(out, wd, cap);
+    }
 }
 
 static bool git_repo_roots_match(const char *lhs, const char *rhs) {
@@ -341,7 +354,7 @@ static void bash_resolve_child_path(const char *parent, const char *source_path,
             out[0] = '\0';
         return;
     }
-    snprintf(out, cap, "%s/%s", parent, base);
+    snprintf(out, cap, "%.2045s/%.2045s", parent, base);
     bash_trim_trailing_slashes(out);
 }
 

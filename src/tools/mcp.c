@@ -26,8 +26,10 @@ static cJSON *mcp_rpc(mcp_server_t *s, const char *method, cJSON *params, bool n
     json[len] = '\n';
     json[len + 1] = '\0';
 
-    write(s->stdin_fd, json, len + 1);
+    ssize_t _w = write(s->stdin_fd, json, len + 1);
     free(json);
+    if (_w != (ssize_t)(len + 1))
+        return NULL; /* server not writable: caller retries */
 
     if (notify)
         return NULL;

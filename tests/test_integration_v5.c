@@ -157,7 +157,7 @@ static int test_fw_poll_no_change(void) {
     char tmpf[] = "/tmp/nevercode_v5_fw_XXXXXX";
     int fd = mkstemp(tmpf);
     ASSERT(fd >= 0);
-    write(fd, "test", 4);
+    ASSERT_INT_EQ(write(fd, "test", 4), 4);
     close(fd);
 
     file_watcher_t w;

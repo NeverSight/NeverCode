@@ -32,8 +32,8 @@ void input_guard_init(const char *project_root) {
     memset(&g_ig, 0, sizeof(g_ig));
     if (project_root)
         nc_strlcpy(g_ig.root, project_root, sizeof(g_ig.root));
-    else
-        getcwd(g_ig.root, sizeof(g_ig.root));
+    else if (!getcwd(g_ig.root, sizeof(g_ig.root)))
+        g_ig.root[0] = '\0';
     g_ig.allow_absolute = true;
     g_ig.follow_symlinks = true; /* no symlink restrictions */
     g_ig.initialized = true;
