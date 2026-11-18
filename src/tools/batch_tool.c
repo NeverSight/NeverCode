@@ -6,7 +6,54 @@
 
 #include "tools.h"
 #include "nevercode.h"
+#include "repl.h"
 #include "terminal.h"
+#include <unistd.h>
+
+/* Permission gate for a sub-call inside Batch. Mirrors the executor's check:
+ * path hint from the same input keys, getcwd fallback for Bash, and the same
+ * prompt/add-rule semantics for PERM_ASK. Returns true when the sub-call may
+ * run; otherwise `sb` already contains a human-readable refusal. */
+static bool _batch_sub_permission(strbuf_t *sb, const char *name, const cJSON *params,
+                                  int index) {
+    const char *hint = NULL;
+    static const char *hint_keys[] = {"path", "file_path", "url",
+                                      "notebook_path", "working_directory", NULL};
+    if (params) {
+        for (int k = 0; hint_keys[k] && !hint; k++)
+            hint = nc_cjson_str(params, hint_keys[k], NULL);
+    }
+    char cwd_buf[NC_PATH_MAX];
+    if (!hint && strcmp(name, "Bash") == 0 && getcwd(cwd_buf, sizeof(cwd_buf)))
+        hint = cwd_buf;
+
+    perm_decision_t pd = perm_check(&g_perms, name, hint);
+    if (pd == PERM_ALLOW)
+        return true;
+    if (pd == PERM_DENY) {
+        strbuf_appendf(sb, "[%d] '%s' denied by policy\n", index, name);
+        return false;
+    }
+    /* PERM_ASK: prompt on the main thread (workers have not been spawned) */
+    char detail[NC_LABEL_MAX] = "";
+    if (hint)
+        nc_strlcpy(detail, hint, sizeof(detail));
+    else if (params) {
+        const char *cmd = nc_cjson_str(params, "command", NULL);
+        if (cmd)
+            snprintf(detail, sizeof(detail), "%.200s", cmd);
+    }
+    int ans = perm_prompt_user(name, detail);
+    if (ans == 1)
+        return true;
+    if (ans == 2) {
+        perm_add_rule(&g_perms, name, NULL, PERM_ALLOW);
+        return true;
+    }
+    strbuf_appendf(sb, "[%d] '%s' requires approval — invoke it directly to approve\n",
+                   index, name);
+    return false;
+}
 
 static const char *BATCH_DISALLOWED[] = {"Batch", "Agent", "SpawnAgent", "TeamCreate", NULL};
 
@@ -111,6 +158,12 @@ static int batch_exec(const cJSON *input, char **output, void *ctx) {
         if (!tool) {
             cJSON_Delete(synth_params);
             strbuf_appendf(&sb, "[%d] error: tool '%s' not found\n", i + 1, name);
+            continue;
+        }
+
+        /* Same gate a direct call would hit: batch must not be a privilege escalation */
+        if (!_batch_sub_permission(&sb, name, params, i + 1)) {
+            cJSON_Delete(synth_params);
             continue;
         }
 

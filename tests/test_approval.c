@@ -73,7 +73,9 @@ static int test_approval_default_mode(void) {
     perm_decision_t d = perm_check(&p, "Read", NULL);
     ASSERT_INT_EQ(d, PERM_ALLOW);
     d = perm_check(&p, "Bash", NULL);
-    ASSERT_INT_EQ(d, PERM_ALLOW);
+    ASSERT_INT_EQ(d, PERM_ASK); /* no resolvable target: asks */
+    d = perm_check(&p, "Bash", ".");
+    ASSERT_INT_EQ(d, PERM_ALLOW); /* cwd inside the workspace: allowed */
     perm_free(&p);
     return 0;
 }

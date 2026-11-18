@@ -56,8 +56,11 @@ static bool _valid_sha256_hex(const char *s) {
     return true;
 }
 
-/* Remote sources must declare a sha256 so any installer can verify artifacts
- * before execution. Fail-closed: an entry that cannot be verified is dropped. */
+/* Remote sources must declare a sha256 so any installer *we add later* can
+ * verify artifacts before execution. NOTE: no installer exists yet — the
+ * digest is stored and exposed via plugin_market_plugin_sha256() for future
+ * use, and manifest entries that lack a valid digest are dropped at scan
+ * time. Nothing here downloads or executes anything. */
 static int _remote_sha(const cJSON *src, market_plugin_t *p) {
     const cJSON *sha = cJSON_GetObjectItem(src, "sha256");
     if (!sha || !cJSON_IsString(sha) || !_valid_sha256_hex(sha->valuestring)) {
@@ -90,8 +93,10 @@ static int parse_source(const cJSON *src, market_plugin_t *p) {
         return 0;
     }
     if (git && cJSON_IsString(git)) {
-        if (!_remote_scheme_ok(git->valuestring, true))
+        if (!_remote_scheme_ok(git->valuestring, true)) {
+            g_market.errors++;
             return -1;
+        }
         if (_remote_sha(src, p) != 0)
             return -1;
         p->kind = MARKET_SRC_GIT;
@@ -99,8 +104,10 @@ static int parse_source(const cJSON *src, market_plugin_t *p) {
         return 0;
     }
     if (url && cJSON_IsString(url)) {
-        if (!_remote_scheme_ok(url->valuestring, false))
+        if (!_remote_scheme_ok(url->valuestring, false)) {
+            g_market.errors++;
             return -1; /* cleartext http refused */
+        }
         if (_remote_sha(src, p) != 0)
             return -1;
         p->kind = MARKET_SRC_URL;
@@ -175,8 +182,11 @@ int plugin_market_scan(const char *project_root) {
         snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", home, CONFIG_DIR_COMPAT);
     }
     if (project_root && project_root[0]) {
-        snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", project_root,
-                 CONFIG_DIR_PRIMARY);
+        /* Project-local manifests honor the same opt-in as project-local code */
+        if (plugin_project_plugins_allowed()) {
+            snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", project_root,
+                     CONFIG_DIR_PRIMARY);
+        }
     }
 
     for (int i = 0; i < ndirs && g_market.count < MARKET_MAX_MARKETS; i++) {

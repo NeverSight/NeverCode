@@ -44,56 +44,68 @@ static bool _is_network_tool(const char *tool) {
     return strcmp(tool, "WebFetch") == 0 || strcmp(tool, "WebSearch") == 0;
 }
 
-/* Normalize `path` lexically (resolves "." and ".."). Falls back to the raw
- * path on overflow. */
-static void _normalize_lexical(const char *path, char *out, size_t outsz) {
-    static const size_t MAX_PARTS = 2048;
-    char tmp[NC_PATH_MAX * 2];
-    if (snprintf(tmp, sizeof(tmp), "%s", path) >= (int)sizeof(tmp)) {
-        nc_strlcpy(out, path, outsz);
+/* Resolve `path` the way the kernel does: walk each component in order and
+ * realpath() each prefix that exists (resolving symlinks as we go). ".." pops
+ * the last *resolved* component, which is the only correct behavior around
+ * symlinks — lexical normalization alone gets this wrong. Non-existent
+ * components are appended verbatim; absolute ".." at the root is a no-op.
+ * The returned buffer is fully canonical when every component exists. */
+static void _resolve_kernel_semantics(const char *path, char *out, size_t outsz) {
+    char work[NC_PATH_MAX * 2];
+
+    if (!path || !path[0]) {
+        nc_strlcpy(out, "/", outsz);
         return;
     }
-    const char *parts[2048];
-    int np = 0;
-    bool absolute = path[0] == '/';
+    if (path[0] != '/') {
+        char cwd[NC_PATH_MAX];
+        if (!getcwd(cwd, sizeof(cwd)) ||
+            snprintf(work, sizeof(work), "%s/%s", cwd, path) >= (int)sizeof(work))
+            goto fallback;
+    } else {
+        if (snprintf(work, sizeof(work), "%s", path) >= (int)sizeof(work))
+            goto fallback;
+    }
+
+    /* `work` is always absolute here, so the canonical prefix starts at root */
+    char acc[NC_PATH_MAX * 2] = "/";
+    char tmp[NC_PATH_MAX];
     char *save = NULL;
-    char *tok = strtok_r(tmp, "/", &save);
-    while (tok) {
+    for (char *tok = strtok_r(work, "/", &save); tok; tok = strtok_r(NULL, "/", &save)) {
         if (strcmp(tok, ".") == 0)
-            ; /* skip */
-        else if (strcmp(tok, "..") == 0) {
-            if (np > 0 && strcmp(parts[np - 1], "..") != 0)
-                np--;
-            else if (!absolute) {
-                if (np >= (int)MAX_PARTS) {
-                    nc_strlcpy(out, path, outsz);
-                    return;
-                }
-                parts[np++] = tok;
+            continue;
+        if (strcmp(tok, "..") == 0) {
+            /* pop last resolved component */
+            size_t len = strlen(acc);
+            while (len > 1 && acc[len - 1] == '/')
+                acc[--len] = '\0';
+            char *slash = strrchr(acc, '/');
+            if (slash)
+                *slash = '\0';       /* keep "" (root) if no other slash */
+            else if (len > 0) {
+                acc[0] = '\0';       /* collapsed to root */
             }
-        } else {
-            if (np >= (int)MAX_PARTS) {
-                nc_strlcpy(out, path, outsz);
-                return;
-            }
-            parts[np++] = tok;
+            continue;
         }
-        tok = strtok_r(NULL, "/", &save);
+        size_t alen = strlen(acc);
+        size_t need = alen + 1 + strlen(tok) + 1;
+        if (need >= sizeof(acc))
+            goto fallback;
+        if (alen == 0)
+            snprintf(acc, sizeof(acc), "/%s", tok);
+        else if (acc[alen - 1] != '/')
+            snprintf(acc + alen, sizeof(acc) - alen, "/%s", tok);
+        else
+            snprintf(acc + alen, sizeof(acc) - alen, "%s", tok);
+        if (realpath(acc, tmp))
+            snprintf(acc, sizeof(acc), "%s", tmp);   /* canonical */
+        /* else: leave non-existent components appended verbatim */
     }
-    size_t off = 0;
-    out[0] = '\0';
-    if (absolute && outsz > 1)
-        out[off++] = '/';
-    for (int i = 0; i < np && off < outsz - 1; i++) {
-        if (i)
-            out[off++] = '/';
-        size_t tl = strlen(parts[i]);
-        if (off + tl >= outsz)
-            break;
-        memcpy(out + off, parts[i], tl);
-        off += tl;
-    }
-    out[off] = '\0';
+    snprintf(out, outsz, "%s", acc[0] ? acc : "/");
+    return;
+
+fallback:
+    nc_strlcpy(out, path, outsz);
 }
 
 /* True if `path` resolves inside the project workspace (or a scratch area). */
@@ -104,66 +116,94 @@ static bool _path_in_workspace(const char *path) {
     if (!path || !path[0])
         return true;
 
-    bool absolute = path[0] == '/';
-    if (realpath(path, resolved)) {
-        /* have fully resolved */
-    } else {
-        char norm[NC_PATH_MAX * 2];
-        char cwd[NC_PATH_MAX];
-        if (!absolute && getcwd(cwd, sizeof(cwd))) {
-            if (snprintf(norm, sizeof(norm), "%s/%s", cwd, path) < (int)sizeof(norm)) {
-                char n2[NC_PATH_MAX * 2];
-                _normalize_lexical(norm, n2, sizeof(n2));
-                if (realpath(n2, resolved))
-                    goto resolved_ok;
-                nc_strlcpy(resolved, n2, sizeof(resolved));
-                goto resolved_ok;
-            }
-        }
-        {
-            char n2[NC_PATH_MAX * 2];
-            _normalize_lexical(path, n2, sizeof(n2));
-            if (realpath(n2, resolved))
-                goto resolved_ok;
-            nc_strlcpy(resolved, n2, sizeof(resolved));
-        }
-    }
-resolved_ok:
+    _resolve_kernel_semantics(path, resolved, sizeof(resolved));
 
     if (root) {
-        size_t rlen = strlen(root);
-        if (strncmp(resolved, root, rlen) == 0 && (resolved[rlen] == '\0' || resolved[rlen] == '/'))
-            return true;
+        char root_res[NC_PATH_MAX];
+        if (!realpath(root, root_res)) {
+            /* unresolvable root: don't grant the carve-out */
+        } else {
+            size_t rlen = strlen(root_res);
+            if (strncmp(resolved, root_res, rlen) == 0 &&
+                (resolved[rlen] == '\0' || resolved[rlen] == '/'))
+                return true;
+        }
     }
-    if (strncmp(resolved, "/tmp/", 5) == 0 || strncmp(resolved, "/dev/", 5) == 0 ||
-        strcmp(resolved, "/tmp") == 0 || strcmp(resolved, "/dev") == 0)
+    /* narrow device allowlist only */
+    if (strcmp(resolved, "/dev/null") == 0 || strcmp(resolved, "/dev/zero") == 0 ||
+        strcmp(resolved, "/dev/tty") == 0 || strcmp(resolved, "/dev/stdout") == 0 ||
+        strcmp(resolved, "/dev/stderr") == 0)
+        return true;
+    if (strncmp(resolved, "/dev/fd/", 8) == 0)
+        return true;
+    if (strncmp(resolved, "/tmp/", 5) == 0 || strcmp(resolved, "/tmp") == 0)
         return true;
     const char *tdir = getenv("TMPDIR");
-    if (tdir && tdir[0] && strncmp(resolved, tdir, strlen(tdir)) == 0)
-        return true;
+    if (tdir && tdir[0] && tdir[0] != '/') {
+        /* relative TMPDIR: use as-is (matches tempfile semantics loosely) */
+        char cwd[NC_PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd))) {
+            char joined[NC_PATH_MAX + NC_PATH_MAX];
+            if (snprintf(joined, sizeof(joined), "%s/%s", cwd, tdir) < (int)sizeof(joined)) {
+                size_t jl = strlen(joined);
+                while (jl > 1 && joined[jl - 1] == '/') joined[--jl] = '\0';
+                size_t tlen = strlen(joined);
+                if (strncmp(resolved, joined, tlen) == 0 &&
+                    (resolved[tlen] == '\0' || resolved[tlen] == '/'))
+                    return true;
+            }
+        }
+        return false;
+    }
+    if (tdir && tdir[0] == '/') {
+        /* canonical TMPDIR: require boundary, and "/" is never scratch space */
+        if (strcmp(tdir, "/") == 0)
+            return false;
+        char tcanon[NC_PATH_MAX];
+        if (!realpath(tdir, tcanon))
+            return strncmp(resolved, tdir, strlen(tdir)) == 0 &&
+                   (resolved[strlen(tdir)] == '\0' || resolved[strlen(tdir)] == '/');
+        size_t tlen = strlen(tcanon);
+        while (tlen > 1 && tcanon[tlen - 1] == '/') tcanon[--tlen] = '\0';
+        tlen = strlen(tcanon);
+        if (tlen == 0)
+            return false;
+        if (strncmp(resolved, tcanon, tlen) == 0 &&
+            (resolved[tlen] == '\0' || resolved[tlen] == '/'))
+            return true;
+    }
     return false;
+}
+
+bool perm_path_in_workspace(const char *path) {
+    return _path_in_workspace(path);
 }
 
 perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path) {
     if (p->trust_all)
         return PERM_ALLOW;
 
-    /* Auto-allow read-only tools based on tool flags (but network tools still ask) */
     const tool_def_t *td = tools_find(tool);
-    if (td && td->read_only && !_is_network_tool(tool))
-        return PERM_ALLOW;
 
-    /* User rules override preset defaults */
+    /* User rules override preset defaults (and the read-only auto-allow) */
     for (int i = p->num_rules - 1; i >= 0; i--) {
         perm_rule_t *r = &p->rules[i];
         if (strcmp(r->tool_name, tool) != 0 && strcmp(r->tool_name, "*") != 0)
             continue;
         if (r->path_prefix && path) {
-            if (!nc_starts_with(path, r->path_prefix))
+            size_t plen = strlen(r->path_prefix);
+            bool ok = strncmp(path, r->path_prefix, plen) == 0;
+            if (ok && plen > 0 && r->path_prefix[plen - 1] != '/')
+                ok = path[plen] == '\0' || path[plen] == '/';
+            if (!ok)
                 continue;
         }
         return r->decision;
     }
+
+    /* Auto-allow read-only tools based on tool flags (but network tools still ask) */
+    if (td && td->read_only && !_is_network_tool(tool))
+        return PERM_ALLOW;
 
     if (strcmp(tool, "TodoWrite") == 0)
         return PERM_ALLOW;
@@ -176,13 +216,17 @@ perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path) {
     }
 
     /* "standard" preset: workspace ops allowed silently; network access and
-     * files outside the workspace require approval */
+     * files outside the workspace require approval. Non-read-only tools with
+     * no resolvable target require approval (executors should pass the
+     * working directory / patch targets as the path hint). */
     if (p->approval_preset == APPROVAL_DEFAULT) {
         if (_is_network_tool(tool))
             return PERM_ASK;
         if (path)
             return _path_in_workspace(path) ? PERM_ALLOW : PERM_ASK;
-        return PERM_ALLOW;
+        if (!td && _safe_readonly_fallback(tool))
+            return PERM_ALLOW;
+        return PERM_ASK;
     }
 
     /* full-access / unknown: permissive unless a rule denies */

@@ -31,6 +31,8 @@ void perm_init(perm_ctx_t *p);
 void perm_free(perm_ctx_t *p);
 void perm_add_rule(perm_ctx_t *p, const char *tool, const char *path_prefix, perm_decision_t d);
 perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path);
+/* True if `path` resolves inside the project workspace or a scratch area. Kernel-correct (component walk, symlink-aware). */
+bool perm_path_in_workspace(const char *path);
 /* Returns: 0=deny, 1=allow once, 2=allow always */
 int perm_prompt_user(const char *tool, const char *detail);
 /* Set approval preset and apply its rules */
