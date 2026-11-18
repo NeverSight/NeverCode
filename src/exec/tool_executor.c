@@ -219,17 +219,30 @@ static void bash_resolve_base_dir(const cJSON *input, char *out, size_t cap) {
         if (wd[0] == '~') {
             const char *home = nc_home_dir();
             if (home)
-                snprintf(out, cap, "%s/%s", home, wd + 2);
+                {
+                char joined[2 * NC_PATH_MAX];
+                int _n = snprintf(joined, sizeof(joined), "%.4095s/%.4095s", home, wd + 2);
+                if (_n > 0)
+                    nc_strlcpy(out, joined, cap);
+                else
+                    nc_strlcpy(out, wd, cap);
+            }
             else
                 nc_strlcpy(out, wd, cap);
         } else
             nc_strlcpy(out, wd, cap);
         return;
     }
-    if (getcwd(cwd, sizeof(cwd)))
-        snprintf(out, cap, "%s/%s", cwd, wd);
-    else
+    if (getcwd(cwd, sizeof(cwd))) {
+        char joined[2 * NC_PATH_MAX];
+        int _n = snprintf(joined, sizeof(joined), "%.4095s/%.4095s", cwd, wd);
+        if (_n > 0)
+            nc_strlcpy(out, joined, cap);
+        else
+            nc_strlcpy(out, wd, cap);
+    } else {
         nc_strlcpy(out, wd, cap);
+    }
 }
 
 static bool git_repo_roots_match(const char *lhs, const char *rhs) {
@@ -244,6 +257,63 @@ static bool git_repo_roots_match(const char *lhs, const char *rhs) {
     if (git_repo_root(rhs, rhs_root, sizeof(rhs_root)) != 0)
         return false;
     return strcmp(lhs_root, rhs_root) == 0;
+}
+
+
+/* Scan an apply_patch body for file targets (Add/Delete/Update/Move markers and
+ * unified-diff --- a/ +++ b/ lines). Returns the first target *outside* the
+ * workspace if any exists (fail-closed), else the first target overall, into
+ * `buf`. Returns NULL when no targets are found. Callers gate the whole
+ * patch — all-or-nothing, matching how a write tool treats one path. */
+static const char *_patch_check_target(const char *patch, char *buf, size_t bufsz) {
+    static const char *markers[] = {"*** Add File: ", "*** Delete File: ",
+                                    "*** Update File: ", "*** Move to: ",
+                                    "+++ b/", "--- a/"};
+    char *first = NULL;
+    char *outside = NULL;
+    const char *scan = patch;
+    while (scan && *scan) {
+        const char *line_end = strchr(scan, '\n');
+        size_t line_len = line_end ? (size_t)(line_end - scan) : strlen(scan);
+        for (size_t m = 0; m < sizeof(markers) / sizeof(markers[0]); m++) {
+            size_t mlen = strlen(markers[m]);
+            if (line_len <= mlen)
+                continue;
+            if (strncmp(scan, markers[m], mlen) != 0)
+                continue;
+            /* target token: up to quote/CR/comma/whitespace */
+            const char *t = scan + mlen;
+            const char *end = scan + line_len;
+            const char *tend = t;
+            while (tend < end && *tend != '"' && *tend != '\x27' && *tend != '\r' &&
+                   *tend != ',' && !isspace((unsigned char)*tend))
+                tend++;
+            size_t tlen = (size_t)(tend - t);
+            if (tlen == 0 || tlen >= NC_PATH_MAX)
+                continue;
+            char target[NC_PATH_MAX];
+            memcpy(target, t, tlen);
+            target[tlen] = '\0';
+            /* peel git prefixes a/ b/ */
+            if ((target[0] == 'a' || target[0] == 'b') && target[1] == '/')
+                memmove(target, target + 2, tlen - 1);
+            if (strcmp(target, "/dev/null") == 0)
+                continue;
+            if (!first)
+                first = nc_xstrdup(target);
+            if (!perm_path_in_workspace(target)) {
+                outside = nc_xstrdup(target);
+                break;
+            }
+        }
+        scan = line_end ? line_end + 1 : NULL;
+    }
+    const char *pick = outside ? outside : first;
+    if (pick)
+        nc_strlcpy(buf, pick, bufsz);
+    free(first);
+    free(outside);
+    return pick ? buf : NULL;
 }
 
 static bool tool_should_capture_git_undo(const char *name, const cJSON *input) {
@@ -341,7 +411,7 @@ static void bash_resolve_child_path(const char *parent, const char *source_path,
             out[0] = '\0';
         return;
     }
-    snprintf(out, cap, "%s/%s", parent, base);
+    snprintf(out, cap, "%.2045s/%.2045s", parent, base);
     bash_trim_trailing_slashes(out);
 }
 
@@ -791,6 +861,28 @@ static void execute_single_tool_serial(conversation_t *conv, stream_state_t *st,
             path_hint = nc_cjson_str(input, "url", NULL);
         if (!path_hint && input)
             path_hint = nc_cjson_str(input, "file_path", NULL);
+        if (!path_hint && input)
+            path_hint = nc_cjson_str(input, "notebook_path", NULL);
+        bool hint_is_dir = false;
+        const char *wd = input ? nc_cjson_str(input, "working_directory", NULL) : NULL;
+        if (!path_hint && wd) {
+            path_hint = wd;
+            hint_is_dir = true;
+        }
+
+        char patch_hint[NC_PATH_MAX];
+        if (!path_hint && input && strcmp(name, "apply_patch") == 0) {
+            const char *patch = nc_cjson_str(input, "patch", NULL);
+            if (patch)
+                path_hint = _patch_check_target(patch, patch_hint, sizeof(patch_hint));
+        }
+        char bash_cwd[NC_PATH_MAX];
+        if (!path_hint && input && strcmp(name, "Bash") == 0) {
+            if (getcwd(bash_cwd, sizeof(bash_cwd))) {
+                path_hint = bash_cwd;
+                hint_is_dir = true;
+            }
+        }
 
         perm_decision_t pd;
         if (hd == HOOK_DECISION_SKIP || effective_readonly)
@@ -806,7 +898,13 @@ static void execute_single_tool_serial(conversation_t *conv, stream_state_t *st,
 
         if (pd == PERM_ASK) {
             char detail[NC_LABEL_MAX] = "";
-            if (path_hint)
+            if (input && strcmp(name, "Bash") == 0) {
+                const char *cmd = nc_cjson_str(input, "command", NULL);
+                if (cmd)
+                    snprintf(detail, sizeof(detail), "%.200s", cmd);
+                else if (path_hint)
+                    nc_strlcpy(detail, path_hint, sizeof(detail));
+            } else if (path_hint)
                 nc_strlcpy(detail, path_hint, sizeof(detail));
             else if (input) {
                 const char *cmd = nc_cjson_str(input, "command", NULL);
@@ -838,7 +936,7 @@ static void execute_single_tool_serial(conversation_t *conv, stream_state_t *st,
             if (turn > 0 && tool_should_capture_git_undo(name, input))
                 git_undo_capture_turn(turn, name);
             const char *fpath = input ? nc_cjson_str(input, "file_path", NULL) : NULL;
-            if (!fpath)
+            if (!fpath && path_hint && !hint_is_dir)
                 fpath = path_hint;
             if (fpath)
                 file_history_snapshot(fpath);

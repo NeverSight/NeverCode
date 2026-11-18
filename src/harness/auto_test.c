@@ -40,9 +40,9 @@ static void at_detect(void) {
         return;
     char p[NC_PATH_MAX];
     char mk[NC_PATH_MAX];
-    snprintf(mk, sizeof(mk), "%s/Makefile", g_at.root);
+    snprintf(mk, sizeof(mk), "%.4084s/Makefile", g_at.root);
     bool has_make = nc_file_exists(mk);
-    snprintf(p, sizeof(p), "%s/tests/test_main.c", g_at.root);
+    snprintf(p, sizeof(p), "%.4075s/tests/test_main.c", g_at.root);
     if (has_make && nc_file_exists(p)) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "tests/test_main.c", sizeof(a->pattern));
@@ -54,58 +54,58 @@ static void at_detect(void) {
         nc_strlcpy(a->command, "make test", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/package.json", g_at.root);
+    snprintf(p, sizeof(p), "%.4080s/package.json", g_at.root);
     if (nc_file_exists(p)) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "package.json", sizeof(a->pattern));
         nc_strlcpy(a->command, "npm test", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/Cargo.toml", g_at.root);
+    snprintf(p, sizeof(p), "%.4082s/Cargo.toml", g_at.root);
     if (nc_file_exists(p)) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "Cargo.toml", sizeof(a->pattern));
         nc_strlcpy(a->command, "cargo test", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/go.mod", g_at.root);
+    snprintf(p, sizeof(p), "%.4086s/go.mod", g_at.root);
     if (nc_file_exists(p)) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "go.mod", sizeof(a->pattern));
         nc_strlcpy(a->command, "go test ./...", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/pyproject.toml", g_at.root);
+    snprintf(p, sizeof(p), "%.4078s/pyproject.toml", g_at.root);
     if (nc_file_exists(p) && g_at.count < ATEST_MAX_PATTERNS) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "pyproject.toml", sizeof(a->pattern));
         nc_strlcpy(a->command, "python -m pytest", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/setup.py", g_at.root);
+    snprintf(p, sizeof(p), "%.4084s/setup.py", g_at.root);
     if (nc_file_exists(p) && g_at.count < ATEST_MAX_PATTERNS) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "setup.py", sizeof(a->pattern));
         nc_strlcpy(a->command, "python -m pytest", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/CMakeLists.txt", g_at.root);
+    snprintf(p, sizeof(p), "%.4078s/CMakeLists.txt", g_at.root);
     if (nc_file_exists(p) && g_at.count < ATEST_MAX_PATTERNS) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "CMakeLists.txt", sizeof(a->pattern));
         nc_strlcpy(a->command, "cmake --build build --target test", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/pom.xml", g_at.root);
+    snprintf(p, sizeof(p), "%.4085s/pom.xml", g_at.root);
     if (nc_file_exists(p) && g_at.count < ATEST_MAX_PATTERNS) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "pom.xml", sizeof(a->pattern));
         nc_strlcpy(a->command, "mvn test", sizeof(a->command));
         a->detected = true;
     }
-    snprintf(p, sizeof(p), "%s/build.gradle", g_at.root);
+    snprintf(p, sizeof(p), "%.4080s/build.gradle", g_at.root);
     if (!nc_file_exists(p))
-        snprintf(p, sizeof(p), "%s/build.gradle.kts", g_at.root);
+        snprintf(p, sizeof(p), "%.4076s/build.gradle.kts", g_at.root);
     if (nc_file_exists(p) && g_at.count < ATEST_MAX_PATTERNS) {
         atest_pat_t *a = &g_at.pats[g_at.count++];
         nc_strlcpy(a->pattern, "build.gradle", sizeof(a->pattern));
@@ -148,7 +148,7 @@ char *auto_test_find_test_file(const char *ef) {
             if (nc_file_exists(c))
                 return nc_xstrdup(c);
             for (int di = 0; td[di][0]; di++) {
-                snprintf(c, sizeof(c), "%s/%s/%s%s%s%s", g_at.root, td[di], pf[pi], stem, sf[si],
+                snprintf(c, sizeof(c), "%.680s/%.680s/%.680s%.680s%.680s%.680s", g_at.root, td[di], pf[pi], stem, sf[si],
                          dot);
                 if (nc_file_exists(c))
                     return nc_xstrdup(c);

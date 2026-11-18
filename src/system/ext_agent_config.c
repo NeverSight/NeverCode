@@ -51,7 +51,7 @@ static void try_detect(const eac_tool_def_t *tool, const char *base, const char 
     /* config file */
     if (tool->config_file && result->count < EAC_MAX_ITEMS) {
         char cfg[NC_PATH_MAX];
-        snprintf(cfg, sizeof(cfg), "%s/%s", dir, tool->config_file);
+        snprintf(cfg, sizeof(cfg), "%.2045s/%.2045s", dir, tool->config_file);
         if (nc_path_exists(cfg)) {
             eac_item_t *it = &result->items[result->count];
             it->type = EAC_CONFIG;
@@ -66,7 +66,7 @@ static void try_detect(const eac_tool_def_t *tool, const char *base, const char 
     /* doc files */
     for (int i = 0; tool->doc_files[i] && result->count < EAC_MAX_ITEMS; i++) {
         char doc[NC_PATH_MAX];
-        snprintf(doc, sizeof(doc), "%s/%s", dir, tool->doc_files[i]);
+        snprintf(doc, sizeof(doc), "%.2045s/%.2045s", dir, tool->doc_files[i]);
         if (nc_path_exists(doc)) {
             eac_item_t *it = &result->items[result->count];
             it->type = EAC_PROJECT_DOC;
@@ -139,7 +139,7 @@ int eac_import(eac_result_t *result, const char *dest_base) {
         const char *basename = strrchr(it->source_path, '/');
         basename = basename ? basename + 1 : it->source_path;
 
-        snprintf(it->dest_path, sizeof(it->dest_path), "%s/imported_%s", dest_dir, basename);
+        snprintf(it->dest_path, sizeof(it->dest_path), "%.2041s/imported_%.2041s", dest_dir, basename);
 
         if (!nc_path_exists(it->dest_path) && copy_file(it->source_path, it->dest_path) == 0) {
             it->imported = true;

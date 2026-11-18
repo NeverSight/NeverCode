@@ -116,7 +116,7 @@ int rollout_truncate_file(const char *session_id, int keep_turns) {
     char dir[NC_PATH_MAX];
     config_home_path(dir, sizeof(dir), "sessions");
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s/events.jsonl", dir, session_id);
+    snprintf(events_path, sizeof(events_path), "%.2038s/%.2038s/events.jsonl", dir, session_id);
 
     FILE *f = fopen(events_path, "r");
     if (!f)
@@ -149,7 +149,7 @@ int rollout_truncate_file(const char *session_id, int keep_turns) {
 
     /* Atomic rewrite: write to .tmp then rename */
     char tmp_path[NC_PATH_MAX];
-    snprintf(tmp_path, sizeof(tmp_path), "%s.tmp", events_path);
+    snprintf(tmp_path, sizeof(tmp_path), "%.4089s.tmp", events_path);
     f = fopen(tmp_path, "w");
     if (!f) {
         cJSON_Delete(trimmed);
@@ -183,7 +183,7 @@ int rollout_truncate_check_needed(const char *session_id) {
     char dir[NC_PATH_MAX];
     config_home_path(dir, sizeof(dir), "sessions");
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s/events.jsonl", dir, session_id);
+    snprintf(events_path, sizeof(events_path), "%.2038s/%.2038s/events.jsonl", dir, session_id);
 
     FILE *f = fopen(events_path, "r");
     if (!f)

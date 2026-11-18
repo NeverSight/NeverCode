@@ -42,7 +42,7 @@ static int test_fuzzy_filter_commands(void) {
 static int test_approval_preset_config_init(void) {
     config_t cfg;
     config_init(&cfg);
-    ASSERT_INT_EQ(cfg.approval_preset, 2); /* APPROVAL_FULL */
+    ASSERT_INT_EQ(cfg.approval_preset, 0); /* APPROVAL_DEFAULT */
     config_free(&cfg);
     return 0;
 }
@@ -50,8 +50,8 @@ static int test_approval_preset_config_init(void) {
 static int test_approval_perm_ctx_init(void) {
     perm_ctx_t p;
     perm_init(&p);
-    ASSERT_INT_EQ(p.approval_preset, APPROVAL_FULL);
-    ASSERT_INT_EQ(p.trust_all, 1);
+    ASSERT_INT_EQ(p.approval_preset, APPROVAL_DEFAULT);
+    ASSERT_INT_EQ(p.trust_all, 0);
     perm_free(&p);
     return 0;
 }

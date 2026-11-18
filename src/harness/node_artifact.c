@@ -56,7 +56,7 @@ int artifact_store_rebuild(artifact_store_t *as) {
             continue;
 
         char node_dir[NODE_ART_PATH_MAX];
-        snprintf(node_dir, sizeof(node_dir), "%s/%s", as->root_dir, node_ent->d_name);
+        snprintf(node_dir, sizeof(node_dir), "%.2045s/%.2045s", as->root_dir, node_ent->d_name);
 
         struct stat node_st;
         if (stat(node_dir, &node_st) != 0 || !S_ISDIR(node_st.st_mode))
@@ -77,7 +77,7 @@ int artifact_store_rebuild(artifact_store_t *as) {
                 continue;
 
             char slot_path[NODE_ART_PATH_MAX];
-            snprintf(slot_path, sizeof(slot_path), "%s/%s", node_dir, slot_ent->d_name);
+            snprintf(slot_path, sizeof(slot_path), "%.2045s/%.2045s", node_dir, slot_ent->d_name);
 
             struct stat slot_st;
             if (stat(slot_path, &slot_st) != 0 || !S_ISREG(slot_st.st_mode))
@@ -110,7 +110,7 @@ int artifact_store_ensure_node(artifact_store_t *as, const char *node_id) {
     node_artifact_t *na = &as->nodes[as->nnodes++];
     memset(na, 0, sizeof(*na));
     nc_strlcpy(na->node_id, node_id, sizeof(na->node_id));
-    snprintf(na->base_dir, sizeof(na->base_dir), "%s/%s", as->root_dir, node_id);
+    snprintf(na->base_dir, sizeof(na->base_dir), "%.4030s/%.62s", as->root_dir, node_id);
     nc_mkdir_p(na->base_dir);
     return 0;
 }
@@ -131,7 +131,7 @@ static node_art_slot_t *_ensure_slot(node_artifact_t *na, const char *name) {
 
     s = &na->slots[na->nslots++];
     nc_strlcpy(s->name, name, sizeof(s->name));
-    snprintf(s->path, sizeof(s->path), "%s/%s", na->base_dir, name);
+    snprintf(s->path, sizeof(s->path), "%.4030s/%.62s", na->base_dir, name);
     s->size = 0;
     return s;
 }

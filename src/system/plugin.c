@@ -8,9 +8,93 @@
 
 #include "nevercode.h"
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 static plugin_registry_t g_plugins;
 static bool g_plugins_initialized = false;
+
+/* True if `st` describes a directory that unprivileged others may not replace
+ * entries in: refuse non-sticky world- or group-writable dirs. Sticky
+ * directories (e.g. /tmp) are tolerated but still flagged for the caller to
+ * pair with an ownership check. */
+static bool _dir_untrusted(const struct stat *dst) {
+    if (dst->st_mode & S_ISVTX)
+        return false; /* sticky: entries can't be renamed by non-owners */
+    if (dst->st_mode & (S_IWOTH | S_IWGRP))
+        return true;
+    return false;
+}
+
+/* Number of ancestor levels to vet (defense in depth against dir substitution
+ * above the immediate parent). */
+#define PLUGIN_ANCESTOR_MAX 8
+
+/* Refusal predicate for plugin shared objects: only regular files owned by
+ * this euid or by root may be dlopen'd, and every ancestor directory up to
+ * the config root must be untrusted by nobody-but-the-owner (non-sticky
+ * world/group-writable ancestors are refused). Refuses symlinks, directories,
+ * fifos/sockets/devices, and group/world-writable files. Returns 0 if the
+ * path is loadable, -1 otherwise. NOTE: the check and dlopen are still two
+ * steps; project-local plugins are off by default for that reason. */
+int plugin_file_loadable(const char *path) {
+    if (!path || !path[0])
+        return -1;
+
+    struct stat st;
+    if (lstat(path, &st) != 0)
+        return -1;
+    if (!S_ISREG(st.st_mode))
+        return -1;
+    if (st.st_mode & (S_IWGRP | S_IWOTH))
+        return -1;
+    /* Ownership: this euid or root (common for system-managed installs) */
+    if (st.st_uid != (uid_t)geteuid() && st.st_uid != 0)
+        return -1;
+
+    const char *slash = strrchr(path, '/');
+    if (!slash)
+        return -1; /* require an explicit directory component */
+
+    char dir[NC_PATH_MAX];
+    size_t dl = (size_t)(slash - path);
+    if (dl >= sizeof(dir))
+        return -1;
+    memcpy(dir, path, dl);
+    dir[dl] = '\0';
+
+    /* Vet the directory and its ancestors */
+    char probe[NC_PATH_MAX * 2];
+    if (!realpath(dir, probe))
+        return -1;
+    for (int depth = 0; depth < PLUGIN_ANCESTOR_MAX; depth++) {
+        struct stat dst;
+        if (stat(probe, &dst) != 0)
+            return -1;
+        if (_dir_untrusted(&dst))
+            return -1;
+        /* Stop at a sane boundary: filesystem root or the user's home dir */
+        const char *home = nc_home_dir();
+        if (home && home[0]) {
+            char hc[NC_PATH_MAX];
+            if (realpath(home, hc) && strcmp(probe, hc) == 0)
+                break;
+        }
+        char *last = strrchr(probe, '/');
+        if (!last || last == probe)
+            break; /* reached filesystem root */
+        *last = '\0';
+    }
+    return 0;
+}
+
+/* Project-local plugin directories (i.e. .nevercode/plugins inside a repo) are
+ * only loaded when explicitly opted in via NEVERCODE_PROJECT_PLUGINS=1.
+ * Loading code from a freshly cloned repository otherwise executes unreviewed
+ * native code at startup. */
+bool plugin_project_plugins_allowed(void) {
+    const char *v = getenv("NEVERCODE_PROJECT_PLUGINS");
+    return v && (strcmp(v, "1") == 0 || strcmp(v, "true") == 0 || strcmp(v, "on") == 0);
+}
 
 void plugin_registry_init(plugin_registry_t *r) {
     memset(r, 0, sizeof(*r));
@@ -100,6 +184,11 @@ int plugin_unload(plugin_registry_t *r, const char *name) {
 }
 
 int plugin_load_so(plugin_registry_t *r, const char *path) {
+    if (!path || !strchr(path, '/')) {
+        fprintf(stderr, "[plugin] refusing plugin path without directory component: %s\n",
+                path ? path : "(null)");
+        return -1;
+    }
     if (!r || !path || r->count >= MAX_PLUGINS)
         return -1;
 
@@ -169,6 +258,16 @@ int plugin_load_so(plugin_registry_t *r, const char *path) {
 }
 
 int plugin_load_dir(plugin_registry_t *r, const char *dir) {
+    if (!dir || !dir[0])
+        return 0;
+
+    /* Refuse to discover plugins from a world-writable, non-sticky directory */
+    struct stat dst;
+    if (stat(dir, &dst) == 0 && _dir_untrusted(&dst)) {
+        fprintf(stderr, "[plugin] refusing plugin directory %s: writable by others\n", dir);
+        return 0;
+    }
+
     DIR *d = opendir(dir);
     if (!d)
         return 0;
@@ -187,6 +286,11 @@ int plugin_load_dir(plugin_registry_t *r, const char *dir) {
 
         char path[NC_PATH_MAX];
         snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+        if (plugin_file_loadable(path) != 0) {
+            fprintf(stderr, "[plugin] refusing to load %s: not a regular file or writable by others\n",
+                    path);
+            continue;
+        }
         if (plugin_load_so(r, path) == 0)
             loaded++;
     }
@@ -300,10 +404,16 @@ int plugin_discover_defaults(plugin_registry_t *r, const char *project_root) {
     }
 
     if (project_root && project_root[0]) {
-        snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_PRIMARY);
-        n += plugin_load_dir(r, p);
-        snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_COMPAT);
-        n += plugin_load_dir(r, p);
+        if (!plugin_project_plugins_allowed()) {
+            fprintf(stderr,
+                    "[plugin] skipping project-local plugins in %s (set NEVERCODE_PROJECT_PLUGINS=1 to enable)\n",
+                    project_root);
+        } else {
+            snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_PRIMARY);
+            n += plugin_load_dir(r, p);
+            snprintf(p, sizeof p, "%s%s/plugins", project_root, CONFIG_DIR_COMPAT);
+            n += plugin_load_dir(r, p);
+        }
     }
     return n;
 }

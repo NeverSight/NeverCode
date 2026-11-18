@@ -218,11 +218,11 @@ int rollout_save(void) {
     nc_mkdir_p(dir);
 
     char sess_dir[NC_PATH_MAX];
-    snprintf(sess_dir, sizeof(sess_dir), "%s/%s", dir, g_ro.sid);
+    snprintf(sess_dir, sizeof(sess_dir), "%.2045s/%.2045s", dir, g_ro.sid);
     mkdir(sess_dir, NC_DIR_MODE_PRIVATE);
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/events.jsonl", sess_dir);
+    snprintf(path, sizeof(path), "%.4080s/events.jsonl", sess_dir);
     FILE *f = fopen(path, "a");
     if (!f)
         return -1;

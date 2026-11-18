@@ -9,7 +9,7 @@ typedef struct {
 static state_db_ctx_t g_sdb;
 
 static void sdb_dir_path(char *out, size_t sz, const char *sub) {
-    snprintf(out, sz, "%s/%s", g_sdb.root_dir, sub);
+    snprintf(out, sz, "%.2045s/%.2045s", g_sdb.root_dir, sub);
 }
 
 void state_db_init(void) {
@@ -39,7 +39,7 @@ int state_db_save_session(const char *sid, const cJSON *data) {
     if (!g_sdb.initialized || !sid || !data)
         return -1;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_SESSIONS "/%s.json", g_sdb.root_dir, sid);
+    snprintf(p, sizeof(p), "%.2038s/" STATE_DB_DIR_SESSIONS "/%.2038s.json", g_sdb.root_dir, sid);
     int rc = nc_json_save(p, data);
     if (rc == 0)
         g_sdb.sessions_written++;
@@ -50,7 +50,7 @@ cJSON *state_db_load_session(const char *sid) {
     if (!g_sdb.initialized || !sid)
         return NULL;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_SESSIONS "/%s.json", g_sdb.root_dir, sid);
+    snprintf(p, sizeof(p), "%.2038s/" STATE_DB_DIR_SESSIONS "/%.2038s.json", g_sdb.root_dir, sid);
     g_sdb.reads++;
     return nc_json_load(p);
 }
@@ -59,7 +59,7 @@ bool state_db_session_exists(const char *sid) {
     if (!g_sdb.initialized || !sid)
         return false;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_SESSIONS "/%s.json", g_sdb.root_dir, sid);
+    snprintf(p, sizeof(p), "%.2038s/" STATE_DB_DIR_SESSIONS "/%.2038s.json", g_sdb.root_dir, sid);
     return access(p, F_OK) == 0;
 }
 
@@ -67,7 +67,7 @@ int state_db_delete_session(const char *sid) {
     if (!g_sdb.initialized || !sid)
         return -1;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_SESSIONS "/%s.json", g_sdb.root_dir, sid);
+    snprintf(p, sizeof(p), "%.2038s/" STATE_DB_DIR_SESSIONS "/%.2038s.json", g_sdb.root_dir, sid);
     return unlink(p) == 0 ? 0 : -1;
 }
 
@@ -96,7 +96,7 @@ int state_db_save_rollout(const char *sid, int turn, const cJSON *data) {
     if (!g_sdb.initialized || !sid || !data)
         return -1;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_ROLLOUTS "/%s_t%d.json", g_sdb.root_dir, sid, turn);
+    snprintf(p, sizeof(p), "%.2030s/" STATE_DB_DIR_ROLLOUTS "/%.2030s_t%d.json", g_sdb.root_dir, sid, turn);
     int rc = nc_json_save(p, data);
     if (rc == 0)
         g_sdb.rollouts_written++;
@@ -107,7 +107,7 @@ cJSON *state_db_load_rollout(const char *sid, int turn) {
     if (!g_sdb.initialized || !sid)
         return NULL;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_ROLLOUTS "/%s_t%d.json", g_sdb.root_dir, sid, turn);
+    snprintf(p, sizeof(p), "%.2030s/" STATE_DB_DIR_ROLLOUTS "/%.2030s_t%d.json", g_sdb.root_dir, sid, turn);
     g_sdb.reads++;
     return nc_json_load(p);
 }
@@ -136,7 +136,7 @@ bool state_db_try_lock(const char *name, int ttl_s) {
     if (!g_sdb.initialized || !name)
         return false;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_LOCKS "/%s.lock", g_sdb.root_dir, name);
+    snprintf(p, sizeof(p), "%.2039s/" STATE_DB_DIR_LOCKS "/%.2039s.lock", g_sdb.root_dir, name);
     struct stat st;
     if (stat(p, &st) == 0) {
         time_t age = nc_time_now() - st.st_mtime;
@@ -157,7 +157,7 @@ void state_db_unlock(const char *name) {
     if (!g_sdb.initialized || !name)
         return;
     char p[NC_PATH_MAX];
-    snprintf(p, sizeof(p), "%s/" STATE_DB_DIR_LOCKS "/%s.lock", g_sdb.root_dir, name);
+    snprintf(p, sizeof(p), "%.2039s/" STATE_DB_DIR_LOCKS "/%.2039s.lock", g_sdb.root_dir, name);
     unlink(p);
 }
 

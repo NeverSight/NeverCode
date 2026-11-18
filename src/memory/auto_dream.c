@@ -95,7 +95,7 @@ static int dream_count_sessions_since(long since) {
         if (nlen < 6 || strcmp(ent->d_name + nlen - 5, ".json") != 0)
             continue;
         char path[NC_PATH_MAX];
-        snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+        snprintf(path, sizeof(path), "%.2045s/%.2045s", dir, ent->d_name);
         struct stat fst;
         if (stat(path, &fst) == 0 && fst.st_mtime > cutoff)
             count++;

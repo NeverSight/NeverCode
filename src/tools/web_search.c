@@ -1,5 +1,6 @@
 #include "tools.h"
 #include "nevercode.h"
+#include "url_guard.h"
 #include <curl/curl.h>
 
 #define MAX_SEARCH_OUTPUT WEBSEARCH_MAX_OUTPUT
@@ -145,6 +146,14 @@ static int web_search_exec(const cJSON *input, char **output, void *ctx) {
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)NC_CURL_CONNECT_TIMEOUT_S);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, (long)NC_CURL_MAX_REDIRS);
+#if LIBCURL_VERSION_NUM >= 0x075500
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+#endif
+    curl_easy_setopt(curl, CURLOPT_OPENSOCKETFUNCTION, nc_ssrf_opensocket);
     curl_easy_setopt(curl, CURLOPT_USERAGENT,
                      "Mozilla/5.0 (compatible; nevercode/" NEVERCODE_VERSION ")");
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);

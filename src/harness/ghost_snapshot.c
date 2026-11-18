@@ -56,7 +56,7 @@ int ghost_snapshot_create(int turn) {
     if (git_commit_tree(cwd, tree_hash, msg, commit_hash, sizeof(commit_hash)) != 0)
         return -1;
     char ref_name[NC_TAG_MAX];
-    snprintf(ref_name, sizeof(ref_name), "refs/nevercode/snapshots/%s/turn-%d", g_ghosts.session_id,
+    snprintf(ref_name, sizeof(ref_name), "refs/nevercode/snapshots/%.80s/turn-%d", g_ghosts.session_id,
              turn);
     if (git_ref_set(cwd, ref_name, commit_hash) != 0)
         return -1;

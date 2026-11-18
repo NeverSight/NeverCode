@@ -286,7 +286,7 @@ char *repl_list_sessions(void) {
             continue;
         active++;
         char line[NC_TAG_MAX];
-        snprintf(line, sizeof(line), "  [%s] pid=%d\n", g_repls[i].lang, (int)g_repls[i].pid);
+        snprintf(line, sizeof(line), "  [%.101s] pid=%d\n", g_repls[i].lang, (int)g_repls[i].pid);
         strbuf_append_str(&sb, line);
     }
 

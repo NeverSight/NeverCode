@@ -285,7 +285,7 @@ static int test_fh_restore_file_over_directory_tree(void) {
     ASSERT_INT_EQ(file_history_snapshot(path), 0);
     ASSERT_INT_EQ(unlink(path), 0);
     ASSERT_INT_EQ(nc_mkdir_p(path), 0);
-    snprintf(nested, sizeof(nested), "%s/child.txt", path);
+    snprintf(nested, sizeof(nested), "%.4083s/child.txt", path);
     ASSERT_INT_EQ(th_write_text(nested, "nested\n"), 0);
     int restored = 0, errors = 0;
     ASSERT_INT_EQ(file_history_restore_turn(1, &restored, &errors), 1);

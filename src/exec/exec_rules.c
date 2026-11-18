@@ -246,7 +246,7 @@ int exec_rules_persist_allow(exec_rules_ctx_t *r, const char *prefix, const char
     mkdir(path, NC_DIR_MODE);
 
     char fpath[NC_LINE_MAX];
-    snprintf(fpath, sizeof(fpath), "%s/default.rules", path);
+    snprintf(fpath, sizeof(fpath), "%.1007s/default.rules", path);
 
     FILE *f = fopen(fpath, "a");
     if (!f)

@@ -421,12 +421,21 @@ static int test_nc_user(void) {
 }
 
 static int test_nc_shell_env(void) {
+    const char *shell_old = getenv("SHELL");
+    char *shell_backup = shell_old ? nc_xstrdup(shell_old) : NULL;
     nc_env_reset();
     setenv("SHELL", "/bin/zsh", 1);
     nc_env_reset();
     const char *s = nc_shell_env();
     ASSERT(s != NULL);
     ASSERT(strstr(s, "zsh") != NULL || strstr(s, "bash") != NULL || s[0] == '/');
+    nc_env_reset();
+    if (shell_backup) {
+        setenv("SHELL", shell_backup, 1);
+        free(shell_backup);
+    } else {
+        unsetenv("SHELL");
+    }
     nc_env_reset();
     return 0;
 }
@@ -586,10 +595,10 @@ static int test_nc_mkdir_p_for_file(void) {
     snprintf(dir, sizeof(dir), "%s/nc_test_mkdirs_XXXXXX", nc_tmpdir());
     ASSERT(mkdtemp(dir) != NULL);
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/sub/deep/file.txt", dir);
+    snprintf(path, sizeof(path), "%.235s/sub/deep/file.txt", dir);
     nc_mkdir_p_for_file(path);
     char parent[NC_PATH_MAX];
-    snprintf(parent, sizeof(parent), "%s/sub/deep", dir);
+    snprintf(parent, sizeof(parent), "%.4084s/sub/deep", dir);
     ASSERT(nc_dir_exists(parent));
     nc_mkdir_p_for_file(NULL);
     nc_rm_rf(dir);
@@ -602,18 +611,18 @@ static int test_nc_rm_rf(void) {
     ASSERT(mkdtemp(dir) != NULL);
 
     char sub[NC_PATH_MAX];
-    snprintf(sub, sizeof(sub), "%s/a/b", dir);
+    snprintf(sub, sizeof(sub), "%.4089s/a/b", dir);
     nc_mkdir_p(sub);
 
     char file1[NC_PATH_MAX];
-    snprintf(file1, sizeof(file1), "%s/a/b/f.txt", dir);
+    snprintf(file1, sizeof(file1), "%.4083s/a/b/f.txt", dir);
     FILE *fp = fopen(file1, "w");
     ASSERT(fp != NULL);
     fputs("data", fp);
     fclose(fp);
 
     char file2[NC_PATH_MAX];
-    snprintf(file2, sizeof(file2), "%s/a/top.txt", dir);
+    snprintf(file2, sizeof(file2), "%.4083s/a/top.txt", dir);
     fp = fopen(file2, "w");
     ASSERT(fp != NULL);
     fputs("top", fp);

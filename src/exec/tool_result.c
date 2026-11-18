@@ -23,7 +23,7 @@ char *tool_result_spill(const char *output, const char *tool_name) {
         return NULL;
 
     char filename[NC_PATH_MAX];
-    snprintf(filename, sizeof(filename), "%s/%s_%ld_%d.txt", dir, tool_name, nc_wall_sec(),
+    snprintf(filename, sizeof(filename), "%.2027s/%.2027s_%ld_%d.txt", dir, tool_name, nc_wall_sec(),
              getpid());
 
     FILE *f = fopen(filename, "w");
@@ -51,7 +51,7 @@ int tool_result_cleanup(void) {
         if (ent->d_name[0] == '.')
             continue;
         char path[NC_PATH_MAX];
-        snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+        snprintf(path, sizeof(path), "%.2045s/%.2045s", dir, ent->d_name);
         struct stat st;
         if (stat(path, &st) == 0 && st.st_mtime < cutoff) {
             if (unlink(path) == 0)

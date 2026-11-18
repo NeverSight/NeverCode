@@ -217,7 +217,7 @@ static int test_exec_rules_persist_allow(void) {
     char rule_path[NC_PATH_MAX];
     config_home_path(rule_path, sizeof(rule_path), "rules");
     char fpath[NC_PATH_MAX];
-    snprintf(fpath, sizeof(fpath), "%s/default.rules", rule_path);
+    snprintf(fpath, sizeof(fpath), "%.4079s/default.rules", rule_path);
 
     size_t sz = 0;
     char *content = strbuf_read_file(fpath, &sz);

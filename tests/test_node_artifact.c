@@ -17,11 +17,12 @@ static void setup_tmpdir(void) {
 static void cleanup_tmpdir(void) {
     char cmd[NC_CMD_MAX];
     snprintf(cmd, sizeof(cmd), "rm -rf %s", g_tmpdir);
-    (void)system(cmd);
+    if (system(cmd) != 0)
+        fprintf(stderr, "cleanup_tmpdir: rm -rf %s failed\n", g_tmpdir);
 }
 
 static int t_init_and_free(void) {
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, "/tmp/nonexistent");
     ASSERT_STR_EQ(as.root_dir, "/tmp/nonexistent");
     ASSERT_INT_EQ(as.nnodes, 0);
@@ -32,14 +33,14 @@ static int t_init_and_free(void) {
 
 static int t_ensure_node_creates_dir(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     ASSERT_INT_EQ(artifact_store_ensure_node(&as, "build"), 0);
     ASSERT_INT_EQ(as.nnodes, 1);
 
     char node_dir[NC_PATH_MAX];
-    snprintf(node_dir, sizeof(node_dir), "%s/build", g_tmpdir);
+    snprintf(node_dir, sizeof(node_dir), "%.4087s/build", g_tmpdir);
     struct stat st;
     ASSERT(stat(node_dir, &st) == 0 && S_ISDIR(st.st_mode));
 
@@ -53,7 +54,7 @@ static int t_ensure_node_creates_dir(void) {
 
 static int t_write_and_read(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     int rc = artifact_write(&as, "step1", "output.txt", "hello world");
@@ -73,7 +74,7 @@ static int t_write_and_read(void) {
 
 static int t_append_accumulates(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     artifact_append(&as, "log_node", "stderr.log", "line 1\n");
@@ -92,7 +93,7 @@ static int t_append_accumulates(void) {
 
 static int t_write_overwrites(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     artifact_write(&as, "n1", "result.txt", "old");
@@ -110,7 +111,7 @@ static int t_write_overwrites(void) {
 
 static int t_path_lookup(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     artifact_write(&as, "n2", "trace.json", "{}");
@@ -129,7 +130,7 @@ static int t_path_lookup(void) {
 
 static int t_attempt_naming(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     artifact_write_attempt(&as, "retry", "output.txt", 1, "first");
@@ -151,14 +152,14 @@ static int t_rebuild_from_disk(void) {
     setup_tmpdir();
 
     {
-        artifact_store_t as;
+        static artifact_store_t as;
         artifact_store_init(&as, g_tmpdir);
         artifact_write(&as, "alpha", "data.bin", "binary-ish");
         artifact_write(&as, "beta", "log.txt", "some log");
         artifact_store_free(&as);
     }
 
-    artifact_store_t as2;
+    static artifact_store_t as2;
     artifact_store_init(&as2, g_tmpdir);
     ASSERT_INT_EQ(artifact_store_rebuild(&as2), 0);
     ASSERT_GE(as2.nnodes, 2);
@@ -175,7 +176,7 @@ static int t_rebuild_from_disk(void) {
 
 static int t_manifest_format(void) {
     setup_tmpdir();
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     artifact_write(&as, "build", "stdout", "output here");
@@ -197,7 +198,7 @@ static int t_manifest_format(void) {
 }
 
 static int t_null_safety(void) {
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, g_tmpdir);
 
     ASSERT(artifact_store_ensure_node(&as, NULL) < 0);

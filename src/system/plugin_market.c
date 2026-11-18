@@ -19,6 +19,7 @@ typedef struct {
     char name[MARKET_NAME_MAX];
     market_source_kind_t kind;
     char path[NC_PATH_MAX];
+    char sha256[65]; /* required for url/git sources (integrity metadata) */
     char version[NC_SHORT_MAX];
     bool auto_install;
     bool enabled;
@@ -40,6 +41,44 @@ typedef struct {
 
 static market_list_t g_market;
 
+static bool _valid_sha256_hex(const char *s) {
+    if (!s)
+        return false;
+    size_t n = strlen(s);
+    if (n != 64)
+        return false;
+    for (size_t i = 0; i < n; i++) {
+        char c = s[i];
+        bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+        if (!hex)
+            return false;
+    }
+    return true;
+}
+
+/* Remote sources must declare a sha256 so any installer *we add later* can
+ * verify artifacts before execution. NOTE: no installer exists yet — the
+ * digest is stored and exposed via plugin_market_plugin_sha256() for future
+ * use, and manifest entries that lack a valid digest are dropped at scan
+ * time. Nothing here downloads or executes anything. */
+static int _remote_sha(const cJSON *src, market_plugin_t *p) {
+    const cJSON *sha = cJSON_GetObjectItem(src, "sha256");
+    if (!sha || !cJSON_IsString(sha) || !_valid_sha256_hex(sha->valuestring)) {
+        g_market.errors++;
+        return -1;
+    }
+    nc_strlcpy(p->sha256, sha->valuestring, sizeof(p->sha256));
+    return 0;
+}
+
+static bool _remote_scheme_ok(const char *s, bool allow_git) {
+    if (strncasecmp(s, "https://", 8) == 0)
+        return true;
+    if (allow_git && (strncasecmp(s, "ssh://", 6) == 0 || strncasecmp(s, "git@", 4) == 0))
+        return true;
+    return false;
+}
+
 static int parse_source(const cJSON *src, market_plugin_t *p) {
     if (!src)
         return -1;
@@ -51,21 +90,36 @@ static int parse_source(const cJSON *src, market_plugin_t *p) {
     if (local && cJSON_IsString(local)) {
         p->kind = MARKET_SRC_LOCAL;
         nc_strlcpy(p->path, local->valuestring, sizeof(p->path));
-    } else if (git && cJSON_IsString(git)) {
+        return 0;
+    }
+    if (git && cJSON_IsString(git)) {
+        if (!_remote_scheme_ok(git->valuestring, true)) {
+            g_market.errors++;
+            return -1;
+        }
+        if (_remote_sha(src, p) != 0)
+            return -1;
         p->kind = MARKET_SRC_GIT;
         nc_strlcpy(p->path, git->valuestring, sizeof(p->path));
-    } else if (url && cJSON_IsString(url)) {
+        return 0;
+    }
+    if (url && cJSON_IsString(url)) {
+        if (!_remote_scheme_ok(url->valuestring, false)) {
+            g_market.errors++;
+            return -1; /* cleartext http refused */
+        }
+        if (_remote_sha(src, p) != 0)
+            return -1;
         p->kind = MARKET_SRC_URL;
         nc_strlcpy(p->path, url->valuestring, sizeof(p->path));
-    } else {
-        return -1;
+        return 0;
     }
-    return 0;
+    return -1;
 }
 
 static int load_manifest(const char *dir, marketplace_t *m) {
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s", dir, MARKET_MANIFEST_NAME);
+    snprintf(path, sizeof(path), "%.2045s/%.2045s", dir, MARKET_MANIFEST_NAME);
 
     char *buf = strbuf_read_file_max(path, NULL, NC_READ_CAP_JSON_MANIFEST);
     if (!buf)
@@ -128,8 +182,11 @@ int plugin_market_scan(const char *project_root) {
         snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", home, CONFIG_DIR_COMPAT);
     }
     if (project_root && project_root[0]) {
-        snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", project_root,
-                 CONFIG_DIR_PRIMARY);
+        /* Project-local manifests honor the same opt-in as project-local code */
+        if (plugin_project_plugins_allowed()) {
+            snprintf(search_dirs[ndirs++], NC_PATH_MAX, "%s%s/plugins", project_root,
+                     CONFIG_DIR_PRIMARY);
+        }
     }
 
     for (int i = 0; i < ndirs && g_market.count < MARKET_MAX_MARKETS; i++) {
@@ -150,6 +207,15 @@ int plugin_market_count(void) {
 
 int plugin_market_marketplace_count(void) {
     return g_market.count;
+}
+
+const char *plugin_market_plugin_sha256(int market_idx, int plugin_idx) {
+    if (market_idx < 0 || market_idx >= g_market.count)
+        return NULL;
+    if (plugin_idx < 0 || plugin_idx >= g_market.markets[market_idx].plugin_count)
+        return NULL;
+    const char *sha = g_market.markets[market_idx].plugins[plugin_idx].sha256;
+    return sha[0] ? sha : NULL;
 }
 
 const char *plugin_market_plugin_name(int market_idx, int plugin_idx) {

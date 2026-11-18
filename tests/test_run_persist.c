@@ -3,13 +3,13 @@
 #include "harness.h"
 
 static int t_snapshot_json_basic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "persist-test", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "step1", "do work");
     pipeline_add_node(&p, "step2", "verify");
     pipeline_add_dep(&p, "step2", "step1");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -48,20 +48,20 @@ static int t_snapshot_json_basic(void) {
 
 static int t_snapshot_null(void) {
     ASSERT_NULL(run_persist_snapshot_json(NULL));
-    pipe_orch_t o;
+    static pipe_orch_t o;
     memset(&o, 0, sizeof(o));
     ASSERT_NULL(run_persist_snapshot_json(&o));
     return 0;
 }
 
 static int t_roundtrip(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "roundtrip", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "a", "task A");
     pipeline_add_node(&p, "b", "task B");
     pipeline_add_dep(&p, "b", "a");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
 
     stall_detector_init();
@@ -80,13 +80,13 @@ static int t_roundtrip(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "roundtrip", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p2, "a", "task A");
     pipeline_add_node(&p2, "b", "task B");
     pipeline_add_dep(&p2, "b", "a");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     int rc = run_persist_restore_json(&o2, &p2, json);
     ASSERT_INT_EQ(rc, 0);
@@ -114,9 +114,9 @@ static int t_roundtrip(void) {
 }
 
 static int t_restore_bad_magic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "bad", PIPE_MAX_CONCURRENT);
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     ASSERT_INT_EQ(run_persist_restore_json(&o, &p, "{\"magic\":\"WRONG\"}"), -1);
     ASSERT_INT_EQ(run_persist_restore_json(&o, &p, "not json"), -1);

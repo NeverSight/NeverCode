@@ -145,7 +145,7 @@ int harness_checkpoint_save(const char *session_id, int turn, const handoff_stat
     nc_mkdir_p(path);
 
     char filepath[NC_PATH_MAX];
-    snprintf(filepath, sizeof(filepath), "%s/%s.json", path, session_id ? session_id : "default");
+    snprintf(filepath, sizeof(filepath), "%.2042s/%.2042s.json", path, session_id ? session_id : "default");
 
     char *json = handoff_state_serialize(state);
     if (!json)
@@ -175,7 +175,7 @@ int harness_checkpoint_load(const char *session_id, handoff_state_t *state, int 
     config_home_path(dir, sizeof(dir), "checkpoints");
 
     char filepath[NC_PATH_MAX];
-    snprintf(filepath, sizeof(filepath), "%s/%s.json", dir, session_id ? session_id : "default");
+    snprintf(filepath, sizeof(filepath), "%.2042s/%.2042s.json", dir, session_id ? session_id : "default");
 
     size_t n = 0;
     char *buf = strbuf_read_file(filepath, &n);
@@ -212,7 +212,7 @@ int harness_checkpoint_cleanup(const char *session_id, int keep_recent) {
     config_home_path(dir, sizeof(dir), "checkpoints");
 
     char filepath[NC_PATH_MAX];
-    snprintf(filepath, sizeof(filepath), "%s/%s.json", dir, session_id ? session_id : "default");
+    snprintf(filepath, sizeof(filepath), "%.2042s/%.2042s.json", dir, session_id ? session_id : "default");
 
     return remove(filepath) == 0 ? 0 : -1;
 }

@@ -67,7 +67,7 @@ int session_mode_save(const char *session_id) {
     nc_mkdir_p(dir);
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s.mode", dir, session_id);
+    snprintf(path, sizeof(path), "%.2042s/%.2042s.mode", dir, session_id);
 
     FILE *f = fopen(path, "w");
     if (!f)
@@ -85,7 +85,7 @@ int session_mode_load(const char *session_id) {
     config_home_path(dir, sizeof(dir), "sessions");
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s.mode", dir, session_id);
+    snprintf(path, sizeof(path), "%.2042s/%.2042s.mode", dir, session_id);
 
     FILE *f = fopen(path, "r");
     if (!f)

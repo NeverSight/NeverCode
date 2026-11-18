@@ -17,12 +17,11 @@ static bool g_root_set = false;
 static bool g_enforcing = false;
 
 void sandbox_init(const char *project_root) {
+    char cwd_buf[NC_PATH_MAX];
     if (!project_root) {
-        char cwd[NC_PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)))
-            project_root = cwd;
-        else
+        if (!getcwd(cwd_buf, sizeof(cwd_buf)))
             return;
+        project_root = cwd_buf;
     }
 
     char *resolved = realpath(project_root, NULL);
@@ -81,7 +80,7 @@ bool sandbox_check_path(const char *path) {
     /* Project root — but deny writes into .git/ and .nevercode/ (privilege escalation) */
     if (g_root_set && g_sandbox_root[0] && _path_under(check, g_sandbox_root)) {
         char gitdir[NC_PATH_MAX], cfgdir[NC_PATH_MAX];
-        snprintf(gitdir, sizeof(gitdir), "%s/.git", g_sandbox_root);
+        snprintf(gitdir, sizeof(gitdir), "%.4088s/.git", g_sandbox_root);
         snprintf(cfgdir, sizeof(cfgdir), "%s/" CONFIG_DOTDIR_SECONDARY, g_sandbox_root);
         if (_path_under(check, gitdir) || _path_under(check, cfgdir))
             return false;

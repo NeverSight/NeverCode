@@ -11,8 +11,8 @@ No telemetry. No bloat. No restrictions. Full freedom.
 - **Long-running harness** — 4-level context compaction, goal tracking, stall detection, checkpoint discipline, context handoff
 - **Multi-agent** — parallel sub-agents, coordinator mode, team management, inter-agent messaging
 - **Session persistence** — full replay from JSONL logs, cross-session memory, resume with context continuity
-- **Security-friendly** — no command restrictions, built-in recon/exploit skills, CTF-ready
-- **~79K lines of C**, <10ms startup, <5MB memory, ~2MB binary, zero dependencies beyond libcurl
+- **Safe-by-default permission model** — workspace-scoped "standard" preset (approval required for network access and files outside the workspace); `-a full-access` for unrestricted mode
+- **~88K lines of C**, <10ms startup, ~2.3MB binary, zero runtime dependencies beyond libcurl
 
 ## Build
 
@@ -28,7 +28,7 @@ Requires: C11 compiler, `libcurl` (system). Optional: `readline` for line editin
 | Platform | Status |
 |----------|--------|
 | macOS    | Fully supported (primary target). File watching via kqueue. |
-| Linux    | Fully supported. File watching via inotify. |
+| Linux    | Fully supported (build + full test suite verified on Debian 12). File watching via inotify. |
 | Windows  | Not supported. Contributions welcome. |
 
 ## Quick Start
@@ -209,7 +209,7 @@ const char *plugin_version(void);
 
 ```
 nevercode/
-├── include/          # 15 headers (1332 macros in defaults.h)
+├── include/          # 15 headers (~1300 macros in defaults.h)
 ├── src/              # 355 source files across 13 modules
 │   ├── core/         # Main loop, config, conversation, state machine
 │   ├── api/          # Provider implementations, streaming, auth
@@ -224,7 +224,7 @@ nevercode/
 │   ├── review/       # Code review, risk assessment
 │   ├── system/       # Permissions, sandbox, model registry
 │   └── state/        # Session persistence, rollout tracking
-├── tests/            # 408 test files (407 unit suites + 1 integration)
+├── tests/            # 416 test files (414 unit suites + 1 integration)
 ├── scripts/          # Development utilities
 └── third_party/      # cJSON (embedded)
 ```
@@ -233,18 +233,26 @@ nevercode/
 
 | Metric | Value |
 |--------|-------|
-| Source | ~79K lines of C (15 headers + 355 sources) |
-| Tests | 407 unit suites + 1 integration |
-| Binary | ~2.1MB (~1.9MB stripped) |
+| Source | ~88K lines of C (15 headers + 356 sources) |
+| Tests | 414 unit suites + 1 integration (all passing) |
+| Binary | ~2.3MB (~2.1MB stripped) |
 | Startup | <10ms |
 | Memory | <5MB |
 | Dependencies | libcurl (system), cJSON (embedded) |
 | Telemetry | None |
 
+## Security
+
+- **Permissions** — nevercode runs with the `standard` approval preset by default: file operations are allowed inside the workspace (and `$TMPDIR`), while **network access (WebFetch/WebSearch) and files outside the workspace require approval** (or `--dangerously-skip-permissions`/`-D` for unrestricted auto-allow, or `-a full-access`). `-a read-only` restricts to read-only tools.
+- **Network egress is restricted to http(s)** — WebFetch/WebSearch follow redirects only within http/https and refuse connections to loopback, private, link-local, CGNAT, multicast and reserved addresses (including `169.254.169.254` cloud metadata) at connect time.
+- **Project-local plugins are not loaded by default** — `.agents/plugins/` and `.claude/plugins/` inside a repo are ignored unless you opt in with `NEVERCODE_PROJECT_PLUGINS=1`. User-level plugins (`~/.agents/plugins/`, `~/.claude/plugins/`) load from regular, owner-writable-only files; signatures are not yet verified.
+- **Telemetry: none** — no analytics, crash reporting, or usage tracking of any kind.
+- **API keys** are held in memory only; they are never written to disk by the tool itself.
+
 ## Testing
 
 ```bash
-make test              # 407 unit test suites
+make test              # 414 unit test suites
 make test-all          # Unit + integration
 make test-harness      # Build + test + binary validation
 make test-harness-json # With JSON report output

@@ -18,7 +18,7 @@
 /* ═══════════ Pipeline DAG ═══════════ */
 
 static int t_pipe_basic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "test", 4);
     ASSERT_INT_EQ(p.nnodes, 0);
     ASSERT_STR_EQ(p.name, "test");
@@ -58,7 +58,7 @@ static int t_pipe_basic(void) {
 }
 
 static int t_pipe_duplicate_node(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dup", 2);
     ASSERT_INT_EQ(pipeline_add_node(&p, "x", "px"), 0);
     ASSERT_INT_EQ(pipeline_add_node(&p, "x", "px2"), -1);
@@ -67,7 +67,7 @@ static int t_pipe_duplicate_node(void) {
 }
 
 static int t_pipe_cycle_detection(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cycle", 2);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
@@ -82,7 +82,7 @@ static int t_pipe_cycle_detection(void) {
 }
 
 static int t_pipe_skip_downstream(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "skip", 4);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
@@ -104,7 +104,7 @@ static int t_pipe_skip_downstream(void) {
 }
 
 static int t_pipe_parallel(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "par", 4);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
@@ -119,7 +119,7 @@ static int t_pipe_parallel(void) {
 }
 
 static int t_pipe_cancel(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cancel", 2);
     pipeline_add_node(&p, "a", "pa");
     pipeline_mark_running(&p, 0);
@@ -143,8 +143,8 @@ static int t_pipe_status_names(void) {
 /* ═══════════ Fanout / Merge ═══════════ */
 
 static int t_fanout_count(void) {
-    fanout_spec_t f;
-    pipeline_t p;
+    static fanout_spec_t f;
+    static pipeline_t p;
     pipeline_init(&p, "fo", 8);
 
     fanout_init(&f, "worker", "do work");
@@ -161,8 +161,8 @@ static int t_fanout_count(void) {
 }
 
 static int t_fanout_values(void) {
-    fanout_spec_t f;
-    pipeline_t p;
+    static fanout_spec_t f;
+    static pipeline_t p;
     pipeline_init(&p, "fv", 8);
 
     fanout_init(&f, "review", "review file");
@@ -182,9 +182,9 @@ static int t_fanout_values(void) {
 }
 
 static int t_merge_batch(void) {
-    fanout_spec_t f;
+    static fanout_spec_t f;
     merge_spec_t m;
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "mb", 8);
 
     fanout_init(&f, "w", "work");
@@ -327,7 +327,7 @@ static int t_cscope_child_only(void) {
 /* ═══════════ Shared Pad ═══════════ */
 
 static int t_spad_basic(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
 
     ASSERT_INT_EQ(shared_pad_line_count(&sp), 0);
@@ -346,7 +346,7 @@ static int t_spad_basic(void) {
 }
 
 static int t_spad_dedup(void) {
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init(&sp);
 
     shared_pad_merge(&sp, "a", "line1\nline2\nline3");
@@ -364,14 +364,14 @@ static int t_spad_persist(void) {
     char path[256];
     snprintf(path, sizeof(path), "/tmp/nc_test_spad_%d.md", (int)getpid());
 
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init_persistent(&sp, path);
     shared_pad_append(&sp, "a1", "finding one");
     shared_pad_append(&sp, "a2", "finding two");
     shared_pad_persist(&sp);
     shared_pad_free(&sp);
 
-    shared_pad_t sp2;
+    static shared_pad_t sp2;
     shared_pad_init_persistent(&sp2, path);
     shared_pad_load(&sp2);
     ASSERT(shared_pad_line_count(&sp2) >= 2);
@@ -389,13 +389,13 @@ static int t_spad_load_replaces_state(void) {
     char path[256];
     snprintf(path, sizeof(path), "/tmp/nc_test_spad_reload_%d.md", (int)getpid());
 
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init_persistent(&sp, path);
     ASSERT_INT_EQ(shared_pad_append(&sp, "disk-a", "finding one"), 0);
     ASSERT_INT_EQ(shared_pad_append(&sp, "disk-b", "finding two"), 0);
     shared_pad_free(&sp);
 
-    shared_pad_t sp2;
+    static shared_pad_t sp2;
     shared_pad_init(&sp2);
     nc_strlcpy(sp2.path, path, sizeof(sp2.path));
     ASSERT_INT_EQ(shared_pad_append(&sp2, "mem", "memory only"), 0);
@@ -428,7 +428,7 @@ static int t_spad_persist_run_token_metadata(void) {
     char path[256];
     snprintf(path, sizeof(path), "/tmp/nc_test_spad_token_%d.md", (int)getpid());
 
-    shared_pad_t sp;
+    static shared_pad_t sp;
     shared_pad_init_persistent(&sp, path);
     shared_pad_set_run_token(&sp, "spad-run-token");
     ASSERT_INT_EQ(shared_pad_append(&sp, "a1", "finding one"), 0);
@@ -440,7 +440,7 @@ static int t_spad_persist_run_token_metadata(void) {
     free(raw);
     shared_pad_free(&sp);
 
-    shared_pad_t sp2;
+    static shared_pad_t sp2;
     shared_pad_init_persistent(&sp2, path);
     ASSERT_INT_EQ(shared_pad_load(&sp2), 0);
     ASSERT_STR_EQ(sp2.current_run_token, "spad-run-token");
@@ -460,7 +460,7 @@ static int t_spad_persist_run_token_metadata(void) {
 /* ═══════════ Event Ledger ═══════════ */
 
 static int t_ledger_basic(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
 
     int s1 = ledger_append(&el, "start", NULL, "pipeline began");
@@ -493,14 +493,14 @@ static int t_ledger_persist(void) {
     detail[LEDGER_DETAIL_MAX - 2] = 'X';
     detail[LEDGER_DETAIL_MAX - 1] = '\0';
 
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init_persistent(&el, log, snap);
     ledger_append(&el, "ev1", "n1", "detail1");
     ledger_append_result(&el, "ev2", "n2", detail, output, 7);
     ledger_write_snapshot(&el, "{\"state\":\"ok\"}");
     ledger_free(&el);
 
-    event_ledger_t el2;
+    static event_ledger_t el2;
     ledger_init_persistent(&el2, log, snap);
     int loaded = ledger_load_log(&el2);
     ASSERT_INT_EQ(loaded, 2);
@@ -528,7 +528,7 @@ static int t_ledger_persist(void) {
 }
 
 static int t_ledger_since(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_append(&el, "a", NULL, NULL);
     ledger_append(&el, "b", NULL, NULL);
@@ -547,7 +547,7 @@ static int t_ledger_since(void) {
 /* ═══════════ Preflight Report ═══════════ */
 
 static int t_pflt_basic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "test-pf", 4);
     pipeline_add_node(&p, "plan", "make a plan");
     pipeline_add_node(&p, "impl", "implement");
@@ -569,7 +569,7 @@ static int t_pflt_basic(void) {
 }
 
 static int t_pflt_warnings(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "warn-pf", 4);
     pipeline_add_node(&p, "solo", "do something alone");
 
@@ -600,7 +600,7 @@ static int t_probe_basic(void) {
     probe_add_action(&pp, PROBE_ACT_CANCEL, "workers_03", "stalled");
     ASSERT_INT_EQ(pp.nactions, 1);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "probe-test", 4);
     pipeline_add_node(&p, "workers_03", "work");
     pipeline_mark_running(&p, 0);
@@ -622,7 +622,7 @@ static int t_probe_settled(void) {
     periodic_probe_t pp;
     probe_init(&pp, "w", 10);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "settled", 4);
     pipeline_add_node(&p, "w_0", "work");
     pipeline_add_node(&p, "w_1", "work");
@@ -689,7 +689,7 @@ static int t_rcycle_basic(void) {
     ASSERT(!rcycle_should_restart(&rc, "unknown"));
     ASSERT_INT_EQ(rcycle_iteration(&rc, "review"), 0);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cycle-test", 4);
     pipeline_add_node(&p, "write", "pw");
     pipeline_add_node(&p, "review", "pr");
@@ -723,7 +723,7 @@ static int t_rcycle_basic(void) {
 /* ═══════════ Orchestrator ═══════════ */
 
 static int t_orch_full_run(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "orch-test", 4);
     pipeline_add_node(&p, "plan", "plan the work");
     pipeline_add_node(&p, "impl", "implement");
@@ -731,7 +731,7 @@ static int t_orch_full_run(void) {
     pipeline_add_dep(&p, "impl", "plan");
     pipeline_add_dep(&p, "test", "impl");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
 
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
@@ -773,7 +773,7 @@ static int t_orch_full_run(void) {
 }
 
 static int t_orch_with_criteria(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "criteria", 2);
     pipeline_add_node(&p, "check", "verify output");
 
@@ -781,7 +781,7 @@ static int t_orch_with_criteria(void) {
     sc_ruleset_init(&rs);
     sc_add_output_contains(&rs, "PASS", false);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_add_criteria(&o, "check", &rs);
     pipe_orch_begin(&o);
@@ -799,7 +799,7 @@ static int t_orch_with_criteria(void) {
 }
 
 static int t_orch_with_cycle(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cycle-orch", 2);
     p.max_iterations = 3;
     pipeline_add_node(&p, "write", "write code");
@@ -810,7 +810,7 @@ static int t_orch_with_cycle(void) {
     sc_ruleset_init(&rs);
     sc_add_output_contains(&rs, "LGTM", true);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_add_criteria(&o, "review", &rs);
     const char *targets[] = {"write"};
@@ -843,12 +843,12 @@ static int t_orch_with_cycle(void) {
 }
 
 static int t_orch_cancel(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cancel-orch", 2);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -866,11 +866,11 @@ static int t_orch_cancel(void) {
 }
 
 static int t_orch_pad(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "pad-orch", 2);
     pipeline_add_node(&p, "a", "pa");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
 
     pipe_orch_pad_write(&o, "agent-1", "found issue in main.c");
@@ -890,10 +890,10 @@ static int t_orch_pad(void) {
 /* ═══════════ Scope Aggregate ═══════════ */
 
 static int t_scope_collect(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "scope-test", 4);
 
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "sweep", "review shard");
     fanout_set_count(&f, 3);
     fanout_expand(&f, &p);
@@ -988,7 +988,7 @@ static int t_pctx_render(void) {
 }
 
 static int t_pctx_pipeline(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "ctx-test", 2);
     pipeline_add_node(&p, "prep", "prepare");
     pipeline_add_node(&p, "exec", "run {{ prep.output }}");
@@ -1016,9 +1016,9 @@ static int t_pctx_pipeline(void) {
 }
 
 static int t_pctx_scope(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "scope-ctx", 4);
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "workers", "do work");
     fanout_set_count(&f, 2);
     fanout_expand(&f, &p);
@@ -1054,7 +1054,7 @@ static int t_pctx_scope(void) {
 /* ═══════════ Node Artifact ═══════════ */
 
 static int t_artifact_basic(void) {
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, "/tmp/nc_test_artifacts");
 
     ASSERT_INT_EQ(artifact_store_ensure_node(&as, "nodeA"), 0);
@@ -1097,7 +1097,7 @@ static int t_artifact_basic(void) {
 /* ═══════════ Ledger Watcher ═══════════ */
 
 static int t_watcher_basic(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
 
     ledger_watcher_t w1, w2;
@@ -1142,7 +1142,7 @@ static int t_watcher_basic(void) {
 }
 
 static int t_watcher_overflow(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -1169,7 +1169,7 @@ static int t_watcher_overflow(void) {
 /* ═══════════ Run Persistence ═══════════ */
 
 static int t_persist_snapshot(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "persist-test", 4);
     pipeline_add_node(&p, "a", "do A");
     pipeline_add_node(&p, "b", "do B");
@@ -1178,7 +1178,7 @@ static int t_persist_snapshot(void) {
     pipeline_mark_running(&p, 0);
     pipeline_mark_done(&p, 0, "result-a", 0);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -1191,13 +1191,13 @@ static int t_persist_snapshot(void) {
     int ledger_n = ledger_event_count(&o.ledger);
     ASSERT(ledger_n > 0);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "persist-test", 4);
     pipeline_add_node(&p2, "a", "do A");
     pipeline_add_node(&p2, "b", "do B");
     pipeline_add_dep(&p2, "b", "a");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     int rc = run_persist_restore_json(&o2, &p2, json);
@@ -1216,13 +1216,13 @@ static int t_persist_snapshot(void) {
 }
 
 static int t_persist_file(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist", 2);
     pipeline_add_node(&p, "x", "do X");
     pipeline_mark_running(&p, 0);
     pipeline_mark_done(&p, 0, "output-x", 0);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -1230,11 +1230,11 @@ static int t_persist_file(void) {
     int rc = run_persist_save(&o, path);
     ASSERT_INT_EQ(rc, 0);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist", 2);
     pipeline_add_node(&p2, "x", "do X");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     rc = run_persist_load(&o2, &p2, path);
@@ -1255,11 +1255,11 @@ static int t_persist_file_ledger(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_ledger_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_ledger_snap_%d.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-ledger", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
@@ -1273,11 +1273,11 @@ static int t_persist_file_ledger(void) {
     int rc = run_persist_save(&o, path);
     ASSERT_INT_EQ(rc, 0);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-ledger", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     rc = run_persist_load(&o2, &p2, path);
     ASSERT_INT_EQ(rc, 0);
@@ -1304,15 +1304,15 @@ static int t_persist_begin_clears_stale_ledger_sidecars(void) {
     ASSERT_INT_EQ(th_write_text(log, "{\"seq\":1,\"ts\":1,\"type\":\"stale_old_run\"}\n"), 0);
     ASSERT_INT_EQ(th_write_text(snap, "{\"stale\":true}\n"), 0);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "fresh-run", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
-    event_ledger_t check;
+    static event_ledger_t check;
     ledger_init_persistent(&check, log, snap);
     ASSERT_INT_EQ(ledger_load_log(&check), 1);
     ASSERT_INT_EQ(ledger_event_count(&check), 1);
@@ -1331,11 +1331,11 @@ static int t_persist_json_ledger(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_json_ledger_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_json_ledger_snap_%d.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "json-persist-ledger", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
@@ -1350,11 +1350,11 @@ static int t_persist_json_ledger(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "json-persist-ledger", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
     ASSERT_INT_EQ(ledger_event_count(&o2.ledger), n_ev);
@@ -1377,11 +1377,11 @@ static int t_persist_json_ledger_prefers_fresher_snapshot(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_json_ledger_fresh_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_json_ledger_fresh_snap_%d.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "json-persist-ledger-fresh", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
@@ -1402,11 +1402,11 @@ static int t_persist_json_ledger_prefers_fresher_snapshot(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "json-persist-ledger-fresh", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
     ASSERT_INT_EQ(ledger_event_count(&o2.ledger), ledger_event_count(&o.ledger));
@@ -1429,15 +1429,15 @@ static int t_persist_save_reports_companion_failure(void) {
     char path[256], log[256], snap[256], broken_dir[256];
     snprintf(path, sizeof(path), "/tmp/nc_test_run_save_fail_%d.json", (int)getpid());
     snprintf(broken_dir, sizeof(broken_dir), "/tmp/nc_test_missing_persist_%d", (int)getpid());
-    snprintf(log, sizeof(log), "%s/log.jsonl", broken_dir);
-    snprintf(snap, sizeof(snap), "%s/snap.json", broken_dir);
+    snprintf(log, sizeof(log), "%.243s/log.jsonl", broken_dir);
+    snprintf(snap, sizeof(snap), "%.244s/snap.json", broken_dir);
     (void)th_remove_tree(broken_dir);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "save-fail", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
@@ -1460,21 +1460,21 @@ static int t_persist_file_pad_merges_fresher_disk(void) {
     snprintf(path, sizeof(path), "/tmp/nc_test_run_pad_%d.json", (int)getpid());
     snprintf(pad_path, sizeof(pad_path), "/tmp/nc_test_run_pad_%d.md", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-pad", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, NULL, NULL, pad_path);
     ASSERT_INT_EQ(pipe_orch_pad_write(&o, "snap", "from snapshot"), 1);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
     ASSERT_INT_EQ(pipe_orch_pad_write(&o, "disk", "disk only"), 1);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-pad", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, NULL, NULL, pad_path);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_INT_EQ(shared_pad_line_count(&o2.pad), 2);
@@ -1485,7 +1485,7 @@ static int t_persist_file_pad_merges_fresher_disk(void) {
     ASSERT(strstr(pad, "[disk] disk only") != NULL);
     free(pad);
 
-    shared_pad_t disk;
+    static shared_pad_t disk;
     shared_pad_init_persistent(&disk, pad_path);
     ASSERT_INT_EQ(shared_pad_load(&disk), 0);
     ASSERT_INT_EQ(shared_pad_line_count(&disk), 2);
@@ -1510,11 +1510,11 @@ static int t_persist_file_pad_ignores_mismatched_run_identity(void) {
     snprintf(path, sizeof(path), "/tmp/nc_test_run_pad_token_%d.json", (int)getpid());
     snprintf(pad_path, sizeof(pad_path), "/tmp/nc_test_run_pad_token_%d.md", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-pad-token", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, NULL, NULL, pad_path);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT(o.run_scope.token[0] != '\0');
@@ -1523,22 +1523,22 @@ static int t_persist_file_pad_ignores_mismatched_run_identity(void) {
     ASSERT_INT_EQ(pipe_orch_pad_write(&o, "snap", "run one note"), 1);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-pad-token", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, NULL, NULL, pad_path);
     ASSERT_INT_EQ(pipe_orch_begin(&o2), 0);
     ASSERT(o2.run_scope.token[0] != '\0');
     ASSERT(strcmp(first_token, o2.run_scope.token) != 0);
     ASSERT_INT_EQ(pipe_orch_pad_write(&o2, "other", "run two note"), 1);
 
-    pipeline_t p3;
+    static pipeline_t p3;
     pipeline_init(&p3, "file-persist-pad-token", 1);
     pipeline_add_node(&p3, "solo", "run");
 
-    pipe_orch_t o3;
+    static pipe_orch_t o3;
     pipe_orch_init_persistent(&o3, &p3, NULL, NULL, pad_path);
     ASSERT_INT_EQ(run_persist_load(&o3, &p3, path), 0);
     ASSERT_STR_EQ(o3.run_scope.token, first_token);
@@ -1568,11 +1568,11 @@ static int t_persist_file_prefers_fresher_sidecar_snapshot(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_sidecar_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_sidecar_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-sidecar", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -1588,11 +1588,11 @@ static int t_persist_file_prefers_fresher_sidecar_snapshot(void) {
     ASSERT_INT_EQ(th_write_text(snap, newer), 0);
     free(newer);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-sidecar", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_INT_EQ(p2.nodes[0].status, PIPE_DONE);
@@ -1616,11 +1616,11 @@ static int t_persist_file_legacy_snapshot_ignores_tokened_sidecar(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_legacy_sidecar_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_legacy_sidecar_%d.jsonl.snap", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-legacy-sidecar", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -1635,11 +1635,11 @@ static int t_persist_file_legacy_snapshot_ignores_tokened_sidecar(void) {
     ASSERT_INT_EQ(th_write_text(path, legacy_json), 0);
     free(legacy_json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-legacy-sidecar", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o2), 0);
 
@@ -1654,11 +1654,11 @@ static int t_persist_file_legacy_snapshot_ignores_tokened_sidecar(void) {
     ASSERT_INT_EQ(th_write_text(snap, newer), 0);
     free(newer);
 
-    pipeline_t p3;
+    static pipeline_t p3;
     pipeline_init(&p3, "file-persist-legacy-sidecar", 1);
     pipeline_add_node(&p3, "solo", "run");
 
-    pipe_orch_t o3;
+    static pipe_orch_t o3;
     pipe_orch_init_persistent(&o3, &p3, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o3, &p3, path), 0);
     ASSERT_STR_EQ(o3.run_scope.token, p3.name);
@@ -1687,11 +1687,11 @@ static int t_persist_file_ignores_mismatched_run_identity(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_token_guard_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_token_guard_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-token-guard", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT(o.run_scope.token[0] != '\0');
@@ -1699,11 +1699,11 @@ static int t_persist_file_ignores_mismatched_run_identity(void) {
     nc_strlcpy(first_token, o.run_scope.token, sizeof(first_token));
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-token-guard", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o2), 0);
     ASSERT(o2.run_scope.token[0] != '\0');
@@ -1716,11 +1716,11 @@ static int t_persist_file_ignores_mismatched_run_identity(void) {
     ASSERT_TRUE(pipe_orch_is_terminal(&o2));
     ASSERT_INT_EQ(run_persist_save(&o2, path2), 0);
 
-    pipeline_t p3;
+    static pipeline_t p3;
     pipeline_init(&p3, "file-persist-token-guard", 1);
     pipeline_add_node(&p3, "solo", "run");
 
-    pipe_orch_t o3;
+    static pipe_orch_t o3;
     pipe_orch_init_persistent(&o3, &p3, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o3, &p3, path), 0);
     ASSERT_STR_EQ(o3.run_scope.token, first_token);
@@ -1748,11 +1748,11 @@ static int t_persist_file_replays_fresher_log_state(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_log_replay_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_log_replay_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-log-replay", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -1763,11 +1763,11 @@ static int t_persist_file_replays_fresher_log_state(void) {
     ASSERT_INT_EQ(pipe_orch_step(&o, ready, 8), 0);
     ASSERT_TRUE(pipe_orch_is_terminal(&o));
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-log-replay", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_INT_EQ(p2.nodes[0].status, PIPE_DONE);
@@ -1795,11 +1795,11 @@ static int t_persist_file_ignores_tokenless_fresher_log(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_log_tokenless_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_log_tokenless_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-log-tokenless", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -1843,11 +1843,11 @@ static int t_persist_file_ignores_tokenless_fresher_log(void) {
     ASSERT_INT_EQ(th_write_text(log, rewritten), 0);
     free(rewritten);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-log-tokenless", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_STR_EQ(o2.run_scope.token, o.run_scope.token);
@@ -1872,11 +1872,11 @@ static int t_persist_file_ignores_mismatched_events_inside_log(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_log_mixed_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_log_mixed_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-log-mixed", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -1924,11 +1924,11 @@ static int t_persist_file_ignores_mismatched_events_inside_log(void) {
     ASSERT_INT_EQ(th_write_text(log, rewritten), 0);
     free(rewritten);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-log-mixed", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_STR_EQ(o2.run_scope.token, o.run_scope.token);
@@ -1957,11 +1957,11 @@ static int t_persist_file_ignores_tokenless_events_inside_tokened_log(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_log_partial_token_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_log_partial_token_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-log-partial-token", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -2009,11 +2009,11 @@ static int t_persist_file_ignores_tokenless_events_inside_tokened_log(void) {
     ASSERT_INT_EQ(th_write_text(log, rewritten), 0);
     free(rewritten);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-log-partial-token", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_STR_EQ(o2.run_scope.token, o.run_scope.token);
@@ -2037,11 +2037,11 @@ static int t_persist_file_ignores_tokenless_events_inside_tokened_log(void) {
 }
 
 static int t_persist_json_ignores_mismatched_events_inside_snapshot(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "persist-json-mixed-events", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
 
@@ -2072,11 +2072,11 @@ static int t_persist_json_ignores_mismatched_events_inside_snapshot(void) {
     free(json);
     ASSERT_NOT_NULL(mixed_json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "persist-json-mixed-events", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, mixed_json), 0);
     ASSERT_STR_EQ(o2.run_scope.token, o.run_scope.token);
@@ -2103,14 +2103,14 @@ static int t_persist_file_replays_fail_fast_skip(void) {
     snprintf(log, sizeof(log), "/tmp/nc_test_run_failfast_replay_%d.jsonl", (int)getpid());
     snprintf(snap, sizeof(snap), "/tmp/nc_test_run_failfast_replay_%d.snap.json", (int)getpid());
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "file-persist-failfast-replay", 1);
     p.fail_fast = true;
     pipeline_add_node(&p, "a", "run a");
     pipeline_add_node(&p, "b", "run b");
     pipeline_add_dep(&p, "b", "a");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init_persistent(&o, &p, log, snap, NULL);
     ASSERT_INT_EQ(pipe_orch_begin(&o), 0);
     ASSERT_INT_EQ(run_persist_save(&o, path), 0);
@@ -2123,14 +2123,14 @@ static int t_persist_file_replays_fail_fast_skip(void) {
     ASSERT_INT_EQ(p.nodes[0].status, PIPE_FAILED);
     ASSERT_INT_EQ(p.nodes[1].status, PIPE_SKIPPED);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "file-persist-failfast-replay", 1);
     p2.fail_fast = true;
     pipeline_add_node(&p2, "a", "run a");
     pipeline_add_node(&p2, "b", "run b");
     pipeline_add_dep(&p2, "b", "a");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init_persistent(&o2, &p2, log, snap, NULL);
     ASSERT_INT_EQ(run_persist_load(&o2, &p2, path), 0);
     ASSERT_INT_EQ(p2.nodes[0].status, PIPE_FAILED);
@@ -2155,10 +2155,10 @@ static int t_persist_file_replays_fail_fast_skip(void) {
 /* ═══════════ Scope Prefix Collect ═══════════ */
 
 static int t_scope_prefix(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "prefix-test", 4);
 
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "scan", "review");
     fanout_set_count(&f, 3);
     fanout_expand(&f, &p);
@@ -2232,16 +2232,16 @@ static int t_pctx_edge(void) {
 /* ═══════════ Orchestrator + Artifacts Integration ═══════════ */
 
 static int t_orch_artifacts(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "art-orch", 4);
     pipeline_add_node(&p, "a", "do A");
     pipeline_add_node(&p, "b", "do B");
     pipeline_add_dep(&p, "b", "a");
 
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, "/tmp/nc_test_orch_art");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_attach_artifacts(&o, &as);
     pipe_orch_begin(&o);
@@ -2279,13 +2279,13 @@ static int t_orch_artifacts(void) {
 /* ═══════════ Orchestrator + Prompt Rendering ═══════════ */
 
 static int t_orch_render(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "render-orch", 2);
     pipeline_add_node(&p, "prep", "generate plan");
     pipeline_add_node(&p, "exec", "implement {{ prep.output }}");
     pipeline_add_dep(&p, "exec", "prep");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_enable_ctx_rendering(&o);
     pipe_orch_begin(&o);
@@ -2309,7 +2309,7 @@ static int t_orch_render(void) {
 /* ═══════════ Run Persist Scoped Parsing ═══════════ */
 
 static int t_persist_scoped(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "scoped", 4);
     p.fail_fast = true;
     p.max_iterations = 7;
@@ -2325,7 +2325,7 @@ static int t_persist_scoped(void) {
     p.started_ms = 700;
     p.finished_ms = 900;
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     o.state = ORCH_FAILED;
     o.started_ms = 1000;
@@ -2334,13 +2334,13 @@ static int t_persist_scoped(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "empty", 1);
     pipeline_add_node(&p2, "alpha", "do alpha");
     pipeline_add_node(&p2, "beta", "do beta");
     pipeline_add_dep(&p2, "beta", "alpha");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     int rc = run_persist_restore_json(&o2, &p2, json);
@@ -2373,13 +2373,13 @@ static int t_persist_outputs_and_pad(void) {
                                      "}\n"
                                      "quote=\"ok\"";
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "persist-outputs", 2);
     pipeline_add_node(&p, "prep", "prepare");
     pipeline_add_node(&p, "exec", "run {{ prep.output }}");
     pipeline_add_dep(&p, "exec", "prep");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2395,13 +2395,13 @@ static int t_persist_outputs_and_pad(void) {
     ASSERT(strstr(json, "\\\"mode\\\"") != NULL);
     ASSERT(strstr(json, "\"shared_pad\"") != NULL);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "persist-outputs", 2);
     pipeline_add_node(&p2, "prep", "prepare");
     pipeline_add_node(&p2, "exec", "run {{ prep.output }}");
     pipeline_add_dep(&p2, "exec", "prep");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
 
@@ -2442,7 +2442,7 @@ static int t_persist_outputs_and_pad(void) {
 /* ═══════════ Watcher Subscribe/Unsubscribe Idempotence ═══════════ */
 
 static int t_watcher_idempotent(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -2463,12 +2463,12 @@ static int t_watcher_idempotent(void) {
 /* ═══════════ Orchestrator Node Cancel/Rerun ═══════════ */
 
 static int t_orch_node_cancel_flag(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "ncancel", 4);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2490,12 +2490,12 @@ static int t_orch_node_cancel_flag(void) {
 }
 
 static int t_orch_rerun_queue(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "rerun", 4);
     pipeline_add_node(&p, "x", "px");
     pipeline_add_node(&p, "y", "py");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2522,11 +2522,11 @@ static int t_orch_rerun_queue(void) {
 }
 
 static int t_orch_rerun_defers_running(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "defer", 4);
     pipeline_add_node(&p, "w", "pw");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2550,11 +2550,11 @@ static int t_orch_rerun_defers_running(void) {
 }
 
 static int t_orch_step_cancel_flag(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "step-cancel", 4);
     pipeline_add_node(&p, "q", "pq");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2572,11 +2572,11 @@ static int t_orch_step_cancel_flag(void) {
 }
 
 static int t_orch_step_cancel_pending(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "step-cancel-pending", 4);
     pipeline_add_node(&p, "q", "pq");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
     ASSERT_INT_EQ(pipe_orch_flag_node_cancel(&o, "q"), 0);
@@ -2599,9 +2599,9 @@ static int t_orch_step_cancel_pending(void) {
 /* ═══════════ Scope Aggregate Subset/Partition ═══════════ */
 
 static int t_scope_subset(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "subset-test", 4);
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "s", "do work");
     fanout_set_count(&f, 4);
     fanout_expand(&f, &p);
@@ -2639,9 +2639,9 @@ static int t_scope_subset(void) {
 }
 
 static int t_scope_partition(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "part-test", 4);
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "p", "work");
     fanout_set_count(&f, 3);
     fanout_expand(&f, &p);
@@ -2675,7 +2675,7 @@ static int t_scope_partition(void) {
 /* ═══════════ Artifact Per-Attempt ═══════════ */
 
 static int t_artifact_attempt(void) {
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, "/tmp/nc_test_art_attempt");
 
     int w = artifact_write_attempt(&as, "n1", "output.txt", 1, "first try");
@@ -2709,9 +2709,9 @@ static int t_artifact_attempt(void) {
 /* ═══════════ Prompt Context Filtered Scope ═══════════ */
 
 static int t_pctx_filtered(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "filt-ctx", 4);
-    fanout_spec_t f;
+    static fanout_spec_t f;
     fanout_init(&f, "grp", "task");
     fanout_set_count(&f, 3);
     fanout_expand(&f, &p);
@@ -2752,14 +2752,14 @@ static int t_pctx_filtered(void) {
 /* ═══════════ Run Persist Cycle Restore ═══════════ */
 
 static int t_persist_cycles(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cycle-persist", 2);
     p.max_iterations = 5;
     pipeline_add_node(&p, "code", "write");
     pipeline_add_node(&p, "test", "verify");
     pipeline_add_dep(&p, "test", "code");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     const char *targets[] = {"code"};
     pipe_orch_add_cycle(&o, "test", targets, 1);
@@ -2782,13 +2782,13 @@ static int t_persist_cycles(void) {
     ASSERT_NOT_NULL(json);
     ASSERT(strstr(json, "\"targets\": [\"code\"]") != NULL);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "cycle-persist", 2);
     pipeline_add_node(&p2, "code", "write");
     pipeline_add_node(&p2, "test", "verify");
     pipeline_add_dep(&p2, "test", "code");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     int rc = run_persist_restore_json(&o2, &p2, json);
@@ -2820,11 +2820,11 @@ static int t_persist_cycles(void) {
 /* ═══════════ Pad Auto-Extract from Output ═══════════ */
 
 static int t_orch_pad_auto(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "pad-auto", 2);
     pipeline_add_node(&p, "worker", "pw");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2847,11 +2847,11 @@ static int t_orch_pad_auto(void) {
 /* ═══════════ Render Prompt with Pad Suffix ═══════════ */
 
 static int t_orch_render_pad(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "render-pad", 2);
     pipeline_add_node(&p, "a", "do {{ a.output }}");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_enable_ctx_rendering(&o);
 
@@ -2870,13 +2870,13 @@ static int t_orch_render_pad(void) {
 /* ═══════════ Persist Cancel/Rerun Queues ═══════════ */
 
 static int t_persist_queues(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "queue-persist", 4);
     pipeline_add_node(&p, "x", "px");
     pipeline_add_node(&p, "y", "py");
     pipeline_add_node(&p, "z", "pz");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -2893,13 +2893,13 @@ static int t_persist_queues(void) {
     ASSERT(strstr(json, "\"x\"") != NULL);
     ASSERT(strstr(json, "\"y\"") != NULL);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "queue-persist", 4);
     pipeline_add_node(&p2, "x", "px");
     pipeline_add_node(&p2, "y", "py");
     pipeline_add_node(&p2, "z", "pz");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     int rc = run_persist_restore_json(&o2, &p2, json);
@@ -2917,12 +2917,12 @@ static int t_persist_queues(void) {
 }
 
 static int t_persist_run_cancel(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cancel-persist", 2);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
     pipe_orch_enable_ctx_rendering(&o);
@@ -2938,12 +2938,12 @@ static int t_persist_run_cancel(void) {
     ASSERT(strstr(json, "\"run_scope_token\"") != NULL);
     ASSERT(strstr(json, "cancel-run-token") != NULL);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "cancel-persist", 2);
     pipeline_add_node(&p2, "a", "pa");
     pipeline_add_node(&p2, "b", "pb");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
     ASSERT_TRUE(o2.ctx_rendering);
@@ -2965,12 +2965,12 @@ static int t_persist_run_cancel(void) {
     ASSERT_NOT_NULL(token_pos);
     memmove(token_pos, token_pos + strlen(token_line), strlen(token_pos + strlen(token_line)) + 1);
 
-    pipeline_t p3;
+    static pipeline_t p3;
     pipeline_init(&p3, "cancel-persist", 2);
     pipeline_add_node(&p3, "a", "pa");
     pipeline_add_node(&p3, "b", "pb");
 
-    pipe_orch_t o3;
+    static pipe_orch_t o3;
     pipe_orch_init(&o3, &p3);
     ASSERT_INT_EQ(run_persist_restore_json(&o3, &p3, legacy_json), 0);
     ASSERT_STR_EQ(o3.run_scope.token, p3.name);
@@ -2987,12 +2987,12 @@ static int t_persist_run_cancel(void) {
 }
 
 static int t_persist_inflight_restart(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "inflight-restart", 1);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -3005,12 +3005,12 @@ static int t_persist_inflight_restart(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "inflight-restart", 1);
     pipeline_add_node(&p2, "a", "pa");
     pipeline_add_node(&p2, "b", "pb");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
 
@@ -3044,14 +3044,14 @@ static int t_persist_artifact_rebuild(void) {
     char artdir[] = "/tmp/nevercode-persist-artifacts-XXXXXX";
     ASSERT_NOT_NULL(mkdtemp(artdir));
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "persist-artifacts", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    artifact_store_t as;
+    static artifact_store_t as;
     artifact_store_init(&as, artdir);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_attach_artifacts(&o, &as);
     pipe_orch_begin(&o);
@@ -3063,14 +3063,14 @@ static int t_persist_artifact_rebuild(void) {
     char *json = run_persist_snapshot_json(&o);
     ASSERT_NOT_NULL(json);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "persist-artifacts", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    artifact_store_t as2;
+    static artifact_store_t as2;
     artifact_store_init(&as2, artdir);
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
     pipe_orch_attach_artifacts(&o2, &as2);
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
@@ -3099,12 +3099,12 @@ static int t_persist_artifact_rebuild(void) {
 }
 
 static int t_persist_probe_criteria(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "probe-criteria", 2);
     pipeline_add_node(&p, "check", "verify");
     pipeline_add_node(&p, "w_0", "worker");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
 
     sc_ruleset_t rs;
@@ -3125,12 +3125,12 @@ static int t_persist_probe_criteria(void) {
     ASSERT(strstr(json, "\"criteria\"") != NULL);
     ASSERT(strstr(json, "\"probes\"") != NULL);
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "probe-criteria", 2);
     pipeline_add_node(&p2, "check", "verify");
     pipeline_add_node(&p2, "w_0", "worker");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
@@ -3173,11 +3173,11 @@ static int t_persist_runtime_supervision(void) {
     ASSERT_INT_EQ(th_init_temp_repo(tmpdir), 0);
     ASSERT_INT_EQ(chdir(tmpdir), 0);
 
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "runtime-persist", 1);
     pipeline_add_node(&p, "solo", "run");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
 
     watchdog_init(20);
@@ -3245,11 +3245,11 @@ static int t_persist_runtime_supervision(void) {
     tool_verify_init();
     doom_loop_init();
 
-    pipeline_t p2;
+    static pipeline_t p2;
     pipeline_init(&p2, "runtime-persist", 1);
     pipeline_add_node(&p2, "solo", "run");
 
-    pipe_orch_t o2;
+    static pipe_orch_t o2;
     pipe_orch_init(&o2, &p2);
 
     ASSERT_INT_EQ(run_persist_restore_json(&o2, &p2, json), 0);
@@ -3308,11 +3308,11 @@ static int t_persist_runtime_supervision(void) {
 /* ═══════════ Rerun Queue Prevents Premature Terminal ═══════════ */
 
 static int t_orch_rerun_holds_terminal(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "hold-term", 2);
     pipeline_add_node(&p, "m", "pm");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -3336,7 +3336,7 @@ static int t_orch_rerun_holds_terminal(void) {
 /* ═══════════ Per-Attempt Artifact from Orchestrator ═══════════ */
 
 static int t_orch_attempt_artifacts(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "attempt-art", 2);
     pipeline_add_node(&p, "n", "pn");
 
@@ -3344,7 +3344,7 @@ static int t_orch_attempt_artifacts(void) {
     ASSERT_NOT_NULL(as);
     artifact_store_init(as, "/tmp/nc_test_orch_attempt");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_attach_artifacts(&o, as);
     pipe_orch_begin(&o);
@@ -3384,12 +3384,12 @@ static int t_orch_attempt_artifacts(void) {
 /* ═══════════ Cancel Flag Cleanup After Application ═══════════ */
 
 static int t_orch_cancel_flag_cleanup(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cleanup", 4);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -3413,14 +3413,14 @@ static int t_orch_cancel_flag_cleanup(void) {
 /* ═══════════ Probe Routes Through Queues Without Double-Apply ═══════════ */
 
 static int t_orch_probe_routes_queues(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "probe-route", 4);
     pipeline_add_node(&p, "w_0", "pw");
     pipeline_add_node(&p, "w_1", "pw");
     pipeline_mark_running(&p, 0);
     pipeline_mark_running(&p, 1);
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 
@@ -3442,12 +3442,12 @@ static int t_orch_probe_routes_queues(void) {
 /* ═══════════ Orchestrator Step Integrates Reruns ═══════════ */
 
 static int t_orch_step_rerun(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "step-rerun", 4);
     pipeline_add_node(&p, "a", "pa");
     pipeline_add_node(&p, "b", "pb");
 
-    pipe_orch_t o;
+    static pipe_orch_t o;
     pipe_orch_init(&o, &p);
     pipe_orch_begin(&o);
 

@@ -12,7 +12,7 @@ static int t_init(void) {
 }
 
 static int t_subscribe_unsubscribe(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -38,7 +38,7 @@ static int t_null_args(void) {
 }
 
 static int t_notify_and_poll(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -65,7 +65,7 @@ static int t_notify_and_poll(void) {
 }
 
 static int t_overflow_drops_oldest(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -90,7 +90,7 @@ static int t_overflow_drops_oldest(void) {
 }
 
 static int t_inactive_watcher_ignored(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t w;
     ledger_watcher_init(&w, 1);
@@ -109,7 +109,7 @@ static int t_inactive_watcher_ignored(void) {
 }
 
 static int t_subscribe_overflow(void) {
-    event_ledger_t el;
+    static event_ledger_t el;
     ledger_init(&el);
     ledger_watcher_t watchers[LEDGER_MAX_WATCHERS + 1];
     for (int i = 0; i < LEDGER_MAX_WATCHERS; i++) {
@@ -141,6 +141,7 @@ int test_ledger_watcher_all(void) {
     RUN_TEST(t_notify_and_poll);
     RUN_TEST(t_inactive_watcher_ignored);
     RUN_TEST(t_subscribe_overflow);
+    RUN_TEST(t_overflow_drops_oldest);
     RUN_TEST(t_poll_empty);
     TEST_RETURN_FAILED();
 }

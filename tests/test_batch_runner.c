@@ -124,7 +124,7 @@ static int t_sanitize_id_result_filename(void) {
     ASSERT_NOT_NULL(summary_output_dir(out_dir, sizeof(out_dir)));
 
     char safe_path[NC_PATH_MAX];
-    snprintf(safe_path, sizeof(safe_path), "%s/______evil.json", out_dir);
+    snprintf(safe_path, sizeof(safe_path), "%.4077s/______evil.json", out_dir);
     ASSERT_INT_EQ(access(safe_path, F_OK), 0);
 
     batch_free();

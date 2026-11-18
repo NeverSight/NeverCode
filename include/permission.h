@@ -13,7 +13,8 @@ typedef struct {
 
 /* Approval presets (process start: NC_DEFAULT_APPROVAL_PRESET in defaults.h). */
 typedef enum {
-    APPROVAL_DEFAULT = 0,  /* permissive; same behavior as APPROVAL_FULL */
+    APPROVAL_DEFAULT = 0,  /* standard: workspace ops allowed; network access or files
+                              outside the workspace require approval */
     APPROVAL_READONLY = 1, /* read-only tools only; prompts for mutating tools */
     APPROVAL_FULL = 2      /* permissive; no permission prompts */
 } approval_preset_t;
@@ -30,6 +31,8 @@ void perm_init(perm_ctx_t *p);
 void perm_free(perm_ctx_t *p);
 void perm_add_rule(perm_ctx_t *p, const char *tool, const char *path_prefix, perm_decision_t d);
 perm_decision_t perm_check(perm_ctx_t *p, const char *tool, const char *path);
+/* True if `path` resolves inside the project workspace or a scratch area. Kernel-correct (component walk, symlink-aware). */
+bool perm_path_in_workspace(const char *path);
 /* Returns: 0=deny, 1=allow once, 2=allow always */
 int perm_prompt_user(const char *tool, const char *detail);
 /* Set approval preset and apply its rules */

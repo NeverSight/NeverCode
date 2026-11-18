@@ -16,7 +16,8 @@ static int test_child_output(void) {
     ASSERT((int)pid >= 0);
     if (pid == 0) {
         close(fd[0]);
-        (void)write(fd[1], "out", 3);
+        ssize_t _w = write(fd[1], "out", 3);
+        (void)_w;
         close(fd[1]);
         _exit(19);
     }

@@ -126,7 +126,7 @@ int rollout_replay_from_session(const char *session_id, message_t **out_msgs, in
     char path[NC_PATH_MAX];
     config_home_path(path, sizeof(path), ROLLOUT_DIR);
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s/%s", path, session_id, ROLLOUT_EVENTS_FILE);
+    snprintf(events_path, sizeof(events_path), "%.1362s/%.1362s/%.1362s", path, session_id, ROLLOUT_EVENTS_FILE);
     replay_event_t *events = calloc(MAX_REPLAY_EVENTS, sizeof(replay_event_t));
     if (!events)
         return -1;
@@ -175,7 +175,7 @@ int rollout_replay_event_count(const char *session_id) {
     char path[NC_PATH_MAX];
     config_home_path(path, sizeof(path), ROLLOUT_DIR);
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s/%s", path, session_id, ROLLOUT_EVENTS_FILE);
+    snprintf(events_path, sizeof(events_path), "%.1362s/%.1362s/%.1362s", path, session_id, ROLLOUT_EVENTS_FILE);
     FILE *f = fopen(events_path, "r");
     if (!f)
         return 0;
@@ -195,11 +195,11 @@ int rollout_replay_append_event(const char *session_id, const char *type, int tu
     char dir[NC_PATH_MAX];
     config_home_path(dir, sizeof(dir), ROLLOUT_DIR);
     char sess_dir[NC_PATH_MAX];
-    snprintf(sess_dir, sizeof(sess_dir), "%s/%s", dir, session_id);
+    snprintf(sess_dir, sizeof(sess_dir), "%.2045s/%.2045s", dir, session_id);
     mkdir(dir, NC_DIR_MODE_PRIVATE);
     mkdir(sess_dir, NC_DIR_MODE_PRIVATE);
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s", sess_dir, ROLLOUT_EVENTS_FILE);
+    snprintf(events_path, sizeof(events_path), "%.2045s/%.2045s", sess_dir, ROLLOUT_EVENTS_FILE);
     cJSON *ev = cJSON_CreateObject();
     cJSON_AddStringToObject(ev, "type", type);
     cJSON_AddNumberToObject(ev, "turn", turn);
@@ -235,7 +235,7 @@ int rollout_replay_list_sessions(char **ids, int max) {
         if (ent->d_name[0] == '.')
             continue;
         char check[NC_PATH_MAX];
-        snprintf(check, sizeof(check), "%s/%s/%s", dir, ent->d_name, ROLLOUT_EVENTS_FILE);
+        snprintf(check, sizeof(check), "%.1362s/%.1362s/%.1362s", dir, ent->d_name, ROLLOUT_EVENTS_FILE);
         struct stat st;
         if (stat(check, &st) == 0)
             ids[count++] = nc_xstrdup(ent->d_name);
@@ -266,7 +266,7 @@ int rollout_replay_reconstruct(const char *session_id, message_t **out_msgs, int
     char path[NC_PATH_MAX];
     config_home_path(path, sizeof(path), ROLLOUT_DIR);
     char events_path[NC_PATH_MAX];
-    snprintf(events_path, sizeof(events_path), "%s/%s/%s", path, session_id, ROLLOUT_EVENTS_FILE);
+    snprintf(events_path, sizeof(events_path), "%.1362s/%.1362s/%.1362s", path, session_id, ROLLOUT_EVENTS_FILE);
     replay_event_t *events = calloc(MAX_REPLAY_EVENTS, sizeof(replay_event_t));
     if (!events)
         return -1;

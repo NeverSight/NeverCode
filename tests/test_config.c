@@ -14,7 +14,7 @@ static int test_config_init(void) {
     ASSERT_NULL(cfg.model);
     ASSERT_NULL(cfg.initial_prompt);
     ASSERT_INT_EQ(cfg.verbose, false);
-    ASSERT(cfg.trust_all_tools == true);
+    ASSERT(cfg.trust_all_tools == false);
     config_free(&cfg);
     return 0;
 }

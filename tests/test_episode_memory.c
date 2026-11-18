@@ -126,7 +126,7 @@ static int t11_persist_roundtrip(void) {
     char agents[NC_PATH_MAX];
     char epfile[NC_PATH_MAX];
     snprintf(agents, sizeof(agents), "%s/.agents", tmp);
-    snprintf(epfile, sizeof(epfile), "%s/%s", agents, EPISODE_PERSIST_FILE);
+    snprintf(epfile, sizeof(epfile), "%.2045s/%.2045s", agents, EPISODE_PERSIST_FILE);
     unlink(epfile);
     rmdir(agents);
     rmdir(tmp);

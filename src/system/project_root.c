@@ -37,7 +37,7 @@ static bool g_root_detected = false;
 
 static bool has_marker(const char *dir, const char *marker) {
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s", dir, marker);
+    snprintf(path, sizeof(path), "%.2045s/%.2045s", dir, marker);
     struct stat st;
     return stat(path, &st) == 0;
 }

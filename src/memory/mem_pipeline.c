@@ -30,7 +30,7 @@ void mem_pipeline_init(void) {
     nc_mkdir_p(g_mpl.root);
 
     char sub[NC_PATH_MAX];
-    snprintf(sub, sizeof(sub), "%s/%s", g_mpl.root, MPL_SUMMARY_DIR);
+    snprintf(sub, sizeof(sub), "%.2045s/%.2045s", g_mpl.root, MPL_SUMMARY_DIR);
     nc_mkdir_p(sub);
 
     g_mpl.phase1_runs = 0;
@@ -104,7 +104,7 @@ int mem_pipeline_phase1_extract(const char *session_id, const message_t *msgs, i
     }
 
     char path[NC_PATH_MAX];
-    snprintf(path, sizeof(path), "%s/%s/%s.md", g_mpl.root, MPL_SUMMARY_DIR, session_id);
+    snprintf(path, sizeof(path), "%.1361s/%.1361s/%.1361s.md", g_mpl.root, MPL_SUMMARY_DIR, session_id);
 
     *raw_memory_out = strbuf_detach(&raw);
     nc_write_file_str(path, *raw_memory_out);
@@ -126,7 +126,7 @@ int mem_pipeline_phase2_consolidate(int max_memories) {
         return -1;
 
     char dir_path[NC_PATH_MAX];
-    snprintf(dir_path, sizeof(dir_path), "%s/%s", g_mpl.root, MPL_SUMMARY_DIR);
+    snprintf(dir_path, sizeof(dir_path), "%.2045s/%.2045s", g_mpl.root, MPL_SUMMARY_DIR);
 
     DIR *d = opendir(dir_path);
     if (!d)
@@ -143,7 +143,7 @@ int mem_pipeline_phase2_consolidate(int max_memories) {
             continue;
 
         char fpath[NC_PATH_MAX];
-        snprintf(fpath, sizeof(fpath), "%s/%s", dir_path, ent->d_name);
+        snprintf(fpath, sizeof(fpath), "%.2045s/%.2045s", dir_path, ent->d_name);
 
         char *content = strbuf_read_file(fpath, NULL);
         if (content) {
@@ -156,7 +156,7 @@ int mem_pipeline_phase2_consolidate(int max_memories) {
     closedir(d);
 
     char raw_path[NC_PATH_MAX];
-    snprintf(raw_path, sizeof(raw_path), "%s/%s", g_mpl.root, MPL_RAW_FILE);
+    snprintf(raw_path, sizeof(raw_path), "%.2045s/%.2045s", g_mpl.root, MPL_RAW_FILE);
     char *raw_text = strbuf_detach(&raw_all);
     nc_write_file_str(raw_path, raw_text);
     free(raw_text);
@@ -166,7 +166,7 @@ int mem_pipeline_phase2_consolidate(int max_memories) {
     strbuf_appendf(&sum, "# Memory Summary\n\nTotal: %d\nLast: %ld\n", count, nc_wall_sec());
 
     char sum_path[NC_PATH_MAX];
-    snprintf(sum_path, sizeof(sum_path), "%s/%s", g_mpl.root, MPL_SUMMARY_FILE);
+    snprintf(sum_path, sizeof(sum_path), "%.2045s/%.2045s", g_mpl.root, MPL_SUMMARY_FILE);
     char *sum_text = strbuf_detach(&sum);
     nc_write_file_str(sum_path, sum_text);
     free(sum_text);

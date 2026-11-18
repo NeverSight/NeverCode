@@ -8,7 +8,7 @@ extern int history_save(const conversation_t *c, const char *id);
 extern int history_load(conversation_t *c, const char *id);
 extern char *history_gen_session_id(void);
 extern char *history_find_latest(void);
-extern int history_list(char **out);
+extern int nc_session_history_list(char **out);
 
 static int test_session_id_gen(void) {
     char *id1 = history_gen_session_id();
@@ -106,7 +106,7 @@ static int test_load_nonexistent(void) {
 
 static int test_history_listing(void) {
     char *out = NULL;
-    int n = history_list(&out);
+    int n = nc_session_history_list(&out);
     ASSERT_NOT_NULL(out);
     (void)n;
     free(out);

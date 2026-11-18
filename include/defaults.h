@@ -34,8 +34,8 @@
 /* Default git commit attribution trailer */
 #define NC_COMMIT_ATTRIBUTION NC_PRODUCT_NAME " <noreply@nevercode.cc>"
 
-/* Default approval preset at process start (numeric approval_preset_t). */
-#define NC_DEFAULT_APPROVAL_PRESET 2
+/* Default approval preset at process start (numeric approval_preset_t: 0=standard, 1=read-only, 2=full-access). */
+#define NC_DEFAULT_APPROVAL_PRESET 0
 
 /* ── Config directories (searched in order) ── */
 #define CONFIG_DIR_PRIMARY "/.agents"

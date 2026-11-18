@@ -67,7 +67,7 @@ static void collect_tree(const char *dir_path, int depth, strbuf_t *sb) {
         strbuf_appendf(sb, "- %s%s\n", items[i].name, items[i].is_dir ? "/" : "");
         if (items[i].is_dir) {
             char sub[NC_PATH_MAX];
-            snprintf(sub, sizeof(sub), "%s/%s", dir_path, items[i].name);
+            snprintf(sub, sizeof(sub), "%.2045s/%.2045s", dir_path, items[i].name);
             collect_tree(sub, depth + 1, sb);
         }
     }

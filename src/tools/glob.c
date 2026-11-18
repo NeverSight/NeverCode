@@ -87,8 +87,8 @@ static int glob_exec(const cJSON *input, char **output, void *ctx) {
     char base[NC_PATH_MAX];
     if (path && path[0])
         nc_strlcpy(base, path, sizeof(base));
-    else
-        getcwd(base, sizeof(base));
+    else if (!getcwd(base, sizeof(base)))
+        base[0] = '\0';
 
     strbuf_t sb;
     strbuf_init(&sb);

@@ -84,7 +84,8 @@ static int connect_to_server(void) {
 }
 
 static int rpc_exchange(int fd, const char *req, char *buf, int bufsz) {
-    write(fd, req, strlen(req));
+    if (write(fd, req, strlen(req)) < 0)
+        return -1;
     server_mode_poll(100);
     usleep(50000);
     server_mode_poll(100);

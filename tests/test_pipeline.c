@@ -3,7 +3,7 @@
 #include "harness.h"
 
 static int t_init_defaults(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "test-dag", 4);
     ASSERT_STR_EQ(p.name, "test-dag");
     ASSERT_INT_EQ(p.concurrency, 4);
@@ -15,7 +15,7 @@ static int t_init_defaults(void) {
 }
 
 static int t_init_clamps_concurrency(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cap", PIPE_MAX_CONCURRENT + 10);
     ASSERT_INT_EQ(p.concurrency, PIPE_MAX_CONCURRENT);
     pipeline_free(&p);
@@ -31,7 +31,7 @@ static int t_init_clamps_concurrency(void) {
 }
 
 static int t_init_null_name(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, NULL, 2);
     ASSERT_INT_EQ(p.name[0], '\0');
     pipeline_free(&p);
@@ -39,7 +39,7 @@ static int t_init_null_name(void) {
 }
 
 static int t_add_node_basic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "nodes", 2);
     ASSERT_INT_EQ(pipeline_add_node(&p, "build", "compile the project"), 0);
     ASSERT_INT_EQ(pipeline_add_node(&p, "test", "run tests"), 1);
@@ -52,7 +52,7 @@ static int t_add_node_basic(void) {
 }
 
 static int t_add_node_rejects_duplicate(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dup", 2);
     ASSERT_INT_EQ(pipeline_add_node(&p, "a", "first"), 0);
     ASSERT_INT_EQ(pipeline_add_node(&p, "a", "second"), -1);
@@ -62,7 +62,7 @@ static int t_add_node_rejects_duplicate(void) {
 }
 
 static int t_add_node_rejects_null(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "null", 2);
     ASSERT_INT_EQ(pipeline_add_node(&p, NULL, "prompt"), -1);
     ASSERT_INT_EQ(pipeline_add_node(&p, "id", NULL), -1);
@@ -72,7 +72,7 @@ static int t_add_node_rejects_null(void) {
 }
 
 static int t_add_node_overflow(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "overflow", 2);
     for (int i = 0; i < PIPE_MAX_NODES; i++) {
         char id[NC_SHORT_MAX];
@@ -86,7 +86,7 @@ static int t_add_node_overflow(void) {
 }
 
 static int t_find_node(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "find", 2);
     pipeline_add_node(&p, "alpha", "a");
     pipeline_add_node(&p, "beta", "b");
@@ -99,7 +99,7 @@ static int t_find_node(void) {
 }
 
 static int t_add_dep_basic(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dep", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -111,7 +111,7 @@ static int t_add_dep_basic(void) {
 }
 
 static int t_add_dep_rejects_unknown(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dep-bad", 2);
     pipeline_add_node(&p, "a", "first");
     ASSERT_INT_EQ(pipeline_add_dep(&p, "a", "nonexist"), -1);
@@ -121,7 +121,7 @@ static int t_add_dep_rejects_unknown(void) {
 }
 
 static int t_add_dep_dedup(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dep-dup", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -133,7 +133,7 @@ static int t_add_dep_dedup(void) {
 }
 
 static int t_set_retries(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "retry", 2);
     pipeline_add_node(&p, "a", "task");
     ASSERT_INT_EQ(pipeline_set_retries(&p, "a", 3), 0);
@@ -146,7 +146,7 @@ static int t_set_retries(void) {
 }
 
 static int t_validate_empty_fails(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "empty", 2);
     char err[NC_LABEL_MAX];
     ASSERT_FALSE(pipeline_validate(&p, err, sizeof(err)));
@@ -156,7 +156,7 @@ static int t_validate_empty_fails(void) {
 }
 
 static int t_validate_good_dag(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "dag", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -167,7 +167,7 @@ static int t_validate_good_dag(void) {
 }
 
 static int t_validate_cycle_detected(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cycle", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -181,7 +181,7 @@ static int t_validate_cycle_detected(void) {
 }
 
 static int t_validate_unknown_dep(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "bad-dep", 2);
     pipeline_add_node(&p, "a", "task");
     p.nodes[0].ndeps = 1;
@@ -194,7 +194,7 @@ static int t_validate_unknown_dep(void) {
 }
 
 static int t_ready_nodes_no_deps(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "ready", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -205,7 +205,7 @@ static int t_ready_nodes_no_deps(void) {
 }
 
 static int t_ready_nodes_with_deps(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "ready-dep", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -219,7 +219,7 @@ static int t_ready_nodes_with_deps(void) {
 }
 
 static int t_mark_running(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "run", 2);
     pipeline_add_node(&p, "a", "task");
     ASSERT_INT_EQ(pipeline_mark_running(&p, 0), 0);
@@ -234,7 +234,7 @@ static int t_mark_running(void) {
 }
 
 static int t_mark_done(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "done", 2);
     pipeline_add_node(&p, "a", "task");
     pipeline_mark_running(&p, 0);
@@ -248,7 +248,7 @@ static int t_mark_done(void) {
 }
 
 static int t_mark_done_null_output(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "done-null", 2);
     pipeline_add_node(&p, "a", "task");
     pipeline_mark_running(&p, 0);
@@ -259,7 +259,7 @@ static int t_mark_done_null_output(void) {
 }
 
 static int t_mark_failed(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "fail", 2);
     pipeline_add_node(&p, "a", "task");
     pipeline_mark_running(&p, 0);
@@ -272,7 +272,7 @@ static int t_mark_failed(void) {
 }
 
 static int t_mark_cancelled(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "cancel", 2);
     pipeline_add_node(&p, "a", "task");
     ASSERT_INT_EQ(pipeline_mark_cancelled(&p, 0), 0);
@@ -284,7 +284,7 @@ static int t_mark_cancelled(void) {
 }
 
 static int t_skip_downstream(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "skip", 2);
     pipeline_add_node(&p, "a", "root");
     pipeline_add_node(&p, "b", "child");
@@ -302,7 +302,7 @@ static int t_skip_downstream(void) {
 }
 
 static int t_skip_no_effect_on_independent(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "skip-ind", 2);
     pipeline_add_node(&p, "a", "root");
     pipeline_add_node(&p, "b", "independent");
@@ -316,7 +316,7 @@ static int t_skip_no_effect_on_independent(void) {
 }
 
 static int t_all_terminal(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "term", 2);
     pipeline_add_node(&p, "a", "first");
     pipeline_add_node(&p, "b", "second");
@@ -342,7 +342,7 @@ static int t_status_name(void) {
 }
 
 static int t_format_status(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "fmt", 2);
     pipeline_add_node(&p, "build", "compile");
     pipeline_add_node(&p, "test", "verify");
@@ -361,7 +361,7 @@ static int t_format_status(void) {
 }
 
 static int t_three_layer_dag(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "3layer", 4);
     pipeline_add_node(&p, "fetch", "download deps");
     pipeline_add_node(&p, "build", "compile");
@@ -406,7 +406,7 @@ static int t_three_layer_dag(void) {
 }
 
 static int t_free_clears_output(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "free", 2);
     pipeline_add_node(&p, "a", "task");
     pipeline_mark_running(&p, 0);

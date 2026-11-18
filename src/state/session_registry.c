@@ -27,7 +27,7 @@ int sreg_register(const char *session_id) {
     mkdir(dir, NC_DIR_MODE_PRIVATE);
 
     pid_t pid = getpid();
-    snprintf(g_sr.pid_path, sizeof(g_sr.pid_path), "%s/%d.json", dir, pid);
+    snprintf(g_sr.pid_path, sizeof(g_sr.pid_path), "%.4073s/%d.json", dir, pid);
 
     FILE *f = fopen(g_sr.pid_path, "w");
     if (!f)
@@ -86,13 +86,13 @@ int sreg_list_live(char **out_buf) {
 
         if (!pid_alive(pid)) {
             char stale[NC_PATH_MAX];
-            snprintf(stale, sizeof(stale), "%s/%s", dir, ent->d_name);
+            snprintf(stale, sizeof(stale), "%.2045s/%.2045s", dir, ent->d_name);
             unlink(stale);
             continue;
         }
 
         char fpath[NC_PATH_MAX];
-        snprintf(fpath, sizeof(fpath), "%s/%s", dir, ent->d_name);
+        snprintf(fpath, sizeof(fpath), "%.2045s/%.2045s", dir, ent->d_name);
         FILE *f = fopen(fpath, "r");
         if (!f)
             continue;
@@ -129,7 +129,7 @@ int sreg_count_live(void) {
             count++;
         else if (pid > 0) {
             char stale[NC_PATH_MAX];
-            snprintf(stale, sizeof(stale), "%s/%s", dir, ent->d_name);
+            snprintf(stale, sizeof(stale), "%.2045s/%.2045s", dir, ent->d_name);
             unlink(stale);
         }
     }

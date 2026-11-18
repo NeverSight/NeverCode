@@ -29,8 +29,8 @@ static int t1(void) {
 static int t2(void) {
     s_mk();
     char sv[NC_PATH_MAX];
-    getcwd(sv, sizeof(sv));
-    chdir(s_td);
+    ASSERT(getcwd(sv, sizeof(sv)) != NULL);
+    ASSERT_INT_EQ(chdir(s_td), 0);
 
     const tool_def_t *t = tools_find("Scaffold");
     cJSON *in = cJSON_CreateObject();
@@ -43,7 +43,7 @@ static int t2(void) {
     free(o);
     cJSON_Delete(in);
 
-    chdir(sv);
+    ASSERT_INT_EQ(chdir(sv), 0);
     s_rm();
     return 0;
 }
@@ -57,8 +57,8 @@ static int t3(void) {
     fclose(f);
 
     char sv[NC_PATH_MAX];
-    getcwd(sv, sizeof(sv));
-    chdir(s_td);
+    ASSERT(getcwd(sv, sizeof(sv)) != NULL);
+    ASSERT_INT_EQ(chdir(s_td), 0);
 
     const tool_def_t *t = tools_find("Scaffold");
     cJSON *in = cJSON_CreateObject();
@@ -70,7 +70,7 @@ static int t3(void) {
     free(o);
     cJSON_Delete(in);
 
-    chdir(sv);
+    ASSERT_INT_EQ(chdir(sv), 0);
     s_rm();
     return 0;
 }
@@ -78,8 +78,8 @@ static int t3(void) {
 static int t4(void) {
     s_mk();
     char sv[NC_PATH_MAX];
-    getcwd(sv, sizeof(sv));
-    chdir(s_td);
+    ASSERT(getcwd(sv, sizeof(sv)) != NULL);
+    ASSERT_INT_EQ(chdir(s_td), 0);
 
     const tool_def_t *t = tools_find("Scaffold");
     cJSON *in = cJSON_CreateObject();
@@ -92,7 +92,7 @@ static int t4(void) {
     free(o);
     cJSON_Delete(in);
 
-    chdir(sv);
+    ASSERT_INT_EQ(chdir(sv), 0);
     s_rm();
     return 0;
 }
@@ -100,8 +100,8 @@ static int t4(void) {
 static int t5(void) {
     s_mk();
     char sv[NC_PATH_MAX];
-    getcwd(sv, sizeof(sv));
-    chdir(s_td);
+    ASSERT(getcwd(sv, sizeof(sv)) != NULL);
+    ASSERT_INT_EQ(chdir(s_td), 0);
 
     const tool_def_t *t = tools_find("Scaffold");
     cJSON *in = cJSON_CreateObject();
@@ -113,7 +113,7 @@ static int t5(void) {
     free(o);
     cJSON_Delete(in);
 
-    chdir(sv);
+    ASSERT_INT_EQ(chdir(sv), 0);
     s_rm();
     return 0;
 }
@@ -121,8 +121,8 @@ static int t5(void) {
 static int t6(void) {
     s_mk();
     char sv[NC_PATH_MAX];
-    getcwd(sv, sizeof(sv));
-    chdir(s_td);
+    ASSERT(getcwd(sv, sizeof(sv)) != NULL);
+    ASSERT_INT_EQ(chdir(s_td), 0);
 
     const tool_def_t *t = tools_find("Scaffold");
     cJSON *in = cJSON_CreateObject();
@@ -134,7 +134,7 @@ static int t6(void) {
     free(o);
     cJSON_Delete(in);
 
-    chdir(sv);
+    ASSERT_INT_EQ(chdir(sv), 0);
     s_rm();
     return 0;
 }

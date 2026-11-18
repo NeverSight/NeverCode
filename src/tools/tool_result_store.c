@@ -54,7 +54,7 @@ char *trs_store(const char *call_id, const char *content, size_t len) {
     trs_entry_t *e = &g_trs.entries[g_trs.count];
     memset(e, 0, sizeof(*e));
     nc_strlcpy(e->id, call_id, sizeof(e->id));
-    snprintf(e->path, sizeof(e->path), "%s/%s.txt", g_trs.base_dir, call_id);
+    snprintf(e->path, sizeof(e->path), "%.2043s/%.2043s.txt", g_trs.base_dir, call_id);
 
     FILE *f = fopen(e->path, "w");
     if (!f)

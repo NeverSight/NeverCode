@@ -52,7 +52,7 @@ static int test_add_real_file(void) {
     char tmpf[] = "/tmp/nevercode_fw_test_XXXXXX";
     int fd = mkstemp(tmpf);
     ASSERT(fd >= 0);
-    write(fd, "test", 4);
+    ASSERT_INT_EQ(write(fd, "test", 4), 4);
     close(fd);
 
     file_watcher_t w;
@@ -136,7 +136,7 @@ static int test_poll_check(void) {
     char tmpf[] = "/tmp/nevercode_fw_poll_XXXXXX";
     int fd = mkstemp(tmpf);
     ASSERT(fd >= 0);
-    write(fd, "a", 1);
+    ASSERT_INT_EQ(write(fd, "a", 1), 1);
     close(fd);
 
     file_watcher_t w;
@@ -151,7 +151,7 @@ static int test_poll_check(void) {
     usleep(1100000);
     fd = open(tmpf, 1);
     if (fd >= 0) {
-        write(fd, "bb", 2);
+        ASSERT_INT_EQ(write(fd, "bb", 2), 2);
         close(fd);
     }
 

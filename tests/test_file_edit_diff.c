@@ -109,7 +109,7 @@ static int test_edit_verify_file_content(void) {
 
     FILE *f = fopen(path, "r");
     char buf[256];
-    fgets(buf, sizeof(buf), f);
+    ASSERT(fgets(buf, sizeof(buf), f) != NULL);
     fclose(f);
     ASSERT(strstr(buf, "int x = 42;") != NULL);
     unlink(path);

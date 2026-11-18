@@ -113,7 +113,7 @@ void config_init(config_t *cfg) {
     memset(cfg, 0, sizeof(*cfg));
     cfg->provider = DEFAULT_PROVIDER;
     cfg->max_tokens = DEFAULT_MAX_TOKENS;
-    cfg->trust_all_tools = true;
+    cfg->trust_all_tools = false;
     cfg->approval_preset = NC_DEFAULT_APPROVAL_PRESET;
     cfg->temperature = SAMPLING_TEMPERATURE_DEFAULT;
     cfg->top_p = SAMPLING_TOP_P_DEFAULT;

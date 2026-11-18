@@ -128,7 +128,7 @@ int transcript_search(const char *home, const char *query, ts_search_t *search) 
             continue;
 
         char fpath[NC_PATH_MAX];
-        snprintf(fpath, sizeof(fpath), "%s/%s", sdir, ent->d_name);
+        snprintf(fpath, sizeof(fpath), "%.2045s/%.2045s", sdir, ent->d_name);
 
         struct stat st;
         if (stat(fpath, &st) != 0)
@@ -142,7 +142,7 @@ int transcript_search(const char *home, const char *query, ts_search_t *search) 
                 search->total_matched++;
         } else if (S_ISDIR(st.st_mode)) {
             char tpath[NC_PATH_MAX];
-            snprintf(tpath, sizeof(tpath), "%s/transcript.jsonl", fpath);
+            snprintf(tpath, sizeof(tpath), "%.4076s/transcript.jsonl", fpath);
             int m = scan_file(tpath, ent->d_name, keywords, nkw, search);
             if (m > 0)
                 search->total_matched++;

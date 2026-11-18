@@ -31,7 +31,7 @@ static int t_warning_overflow(void) {
 }
 
 static int t_build_simple(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "build-test", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "step1", "compile code");
     pipeline_add_node(&p, "step2", "run tests");
@@ -55,7 +55,7 @@ static int t_build_null(void) {
 }
 
 static int t_orphan_warning(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "orphan", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "connected", "work");
     pipeline_add_node(&p, "isolated", "alone");
@@ -72,7 +72,7 @@ static int t_orphan_warning(void) {
 }
 
 static int t_format_report(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "fmt-test", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "a", "do something");
 
@@ -89,7 +89,7 @@ static int t_format_report(void) {
 }
 
 static int t_format_summary(void) {
-    pipeline_t p;
+    static pipeline_t p;
     pipeline_init(&p, "sum", PIPE_MAX_CONCURRENT);
     pipeline_add_node(&p, "x", "y");
 

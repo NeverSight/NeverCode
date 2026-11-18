@@ -10,6 +10,7 @@
 
 #include "nevercode.h"
 #include "git_ops.h"
+#include "url_guard.h"
 #include <curl/curl.h>
 
 #define MAX_URL_FETCH_SIZE URL_FETCH_MAX_BYTES
@@ -56,6 +57,9 @@ char *mention_fetch_url(const char *url) {
     if (!url)
         return NULL;
 
+    if (!nc_url_scheme_http_https(url))
+        return NULL; /* only http/https URLs may be fetched */
+
     CURL *curl = curl_easy_init();
     if (!curl)
         return NULL;
@@ -72,6 +76,14 @@ char *mention_fetch_url(const char *url) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &fb);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+#if LIBCURL_VERSION_NUM >= 0x075500
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "http,https");
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+#endif
+    curl_easy_setopt(curl, CURLOPT_OPENSOCKETFUNCTION, nc_ssrf_opensocket);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, (long)WEBSEARCH_TIMEOUT_S);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, (long)NC_CURL_CONNECT_SHORT_S);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, NC_USER_AGENT);
@@ -138,7 +150,7 @@ static char *list_directory(const char *dirpath, int max_entries) {
             continue;
 
         char fullpath[NC_PATH_MAX];
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", dirpath, ent->d_name);
+        snprintf(fullpath, sizeof(fullpath), "%.2045s/%.2045s", dirpath, ent->d_name);
         struct stat st;
         bool is_dir = (stat(fullpath, &st) == 0 && S_ISDIR(st.st_mode));
 

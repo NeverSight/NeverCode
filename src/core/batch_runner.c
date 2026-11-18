@@ -145,7 +145,7 @@ int batch_load_prompts(const char *path) {
     nc_ensure_dir(dir);
 
     char run_dir[NC_PATH_MAX];
-    snprintf(run_dir, sizeof(run_dir), "%s/%s", dir, g_batch.run_id);
+    snprintf(run_dir, sizeof(run_dir), "%.2045s/%.2045s", dir, g_batch.run_id);
     nc_ensure_dir(run_dir);
     g_batch.output_dir = nc_xstrdup(run_dir);
 

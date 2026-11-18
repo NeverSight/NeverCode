@@ -51,7 +51,7 @@ static int enter_worktree_exec(const cJSON *input, char **output, void *ctx) {
     if (path && *path) {
         nc_strlcpy(g_worktree_path, path, sizeof(g_worktree_path));
     } else {
-        snprintf(g_worktree_path, sizeof(g_worktree_path), "%s/.nevercode-worktree-%s",
+        snprintf(g_worktree_path, sizeof(g_worktree_path), "%.2035s/.nevercode-worktree-%.2035s",
                  g_original_cwd, branch);
     }
 
