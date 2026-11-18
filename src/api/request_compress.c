@@ -37,8 +37,11 @@ void request_compress_init(void) {
 void request_compress_auto_configure(const char *base_url) {
     if (!base_url)
         return;
-    if (strstr(base_url, DEFAULT_COMPAT_HOST) || strstr(base_url, DEFAULT_NATIVE_HOST))
-        return;
+    /* OpenAI and Anthropic reject gzip-encoded request bodies with HTTP 400
+     * ("We could not parse the JSON body of your request"). Never send
+     * Content-Encoding: gzip to any API host; request compression stays
+     * opt-in via request_compress_set_enabled() for gateways that support it. */
+    (void)base_url;
     g_rc.enabled = false;
 }
 
